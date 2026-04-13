@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>엘리베이터 체험</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Noto Sans KR", sans-serif;
+      background: #1d1d1d;
+      color: #f1f1f1;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .app {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background:
+        linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(0,0,0,0.15)),
+        linear-gradient(135deg, #3b3b3b 0%, #2a2a2a 40%, #1f1f1f 100%);
+    }
+
+    /* 시작 문 */
+    #doorWrap {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      pointer-events: none;
+    }
+
+    .door {
+      width: 50%;
+      height: 100%;
+      background:
+        linear-gradient(to right, #545454, #2f2f2f 40%, #1b1b1b 100%);
+      border-right: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.65);
+      transition: transform 1.8s ease;
+    }
+
+    #doorRight {
+      transform-origin: right center;
+      border-right: none;
+      border-left: 1px solid rgba(255,255,255,0.08);
+      background:
+        linear-gradient(to left, #545454, #2f2f2f 40%, #1b1b1b 100%);
+    }
+
+    #doorWrap.open #doorLeft { transform: translateX(-100%); }
+    #doorWrap.open #doorRight { transform: translateX(100%); }
+
+    /* 내부 레이아웃 */
+    #elevatorScene {
+      position: relative;
+      display: none;
+      width: 100%;
+      height: 100%;
+      grid-template-columns: 1fr 220px;
+    }
+
+    #elevatorScene.show {
+      display: grid;
+    }
+
+    .left-wall {
+      position: relative;
+      height: 100%;
+      background:
+        linear-gradient(to bottom, rgba(255,255,255,0.08), transparent 18%),
+        linear-gradient(90deg, #4a4a4a, #373737 20%, #2c2c2c 55%, #232323);
+      border-right: 2px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+
+    /* 천장 조명 */
+    .ceiling-light {
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 320px;
+      height: 32px;
+      border-radius: 10px;
+      background: linear-gradient(to bottom, #fff7cf, #b8b2a0);
+      opacity: 0.75;
+      box-shadow:
+        0 0 18px rgba(255, 240, 180, 0.35),
+        0 0 70px rgba(255, 240, 180, 0.12);
+      transition: opacity 0.35s ease, filter 0.35s ease;
+    }
+
+    .left-wall.dimmed .ceiling-light {
+      opacity: 0.28;
+      filter: saturate(0.7);
+    }
+
+    /* 층 표시 디스플레이 */
+    .floor-display {
+      position: absolute;
+      top: 68px;
+      right: 34px;
+      min-width: 82px;
+      padding: 10px 12px;
+      background: #101010;
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: inset 0 0 12px rgba(255,0,0,0.15);
+    }
+
+    .floor-display .label {
+      font-size: 11px;
+      color: #9f9f9f;
+      margin-bottom: 4px;
+      letter-spacing: 0.04em;
+    }
+
+    .floor-display .value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #ff6a6a;
+      letter-spacing: 0.08em;
+    }
+
+    /* 거울 */
+    .mirror-wrap {
+      position: absolute;
+      top: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 420px;
+      height: 540px;
+    }
+
+    #mirror {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border: 10px solid #9d9d9d;
+      border-radius: 8px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,0.18), rgba(255,255,255,0.04)),
+        linear-gradient(180deg, #465057, #2e3438 42%, #202529 100%);
+      box-shadow:
+        inset 0 0 18px rgba(255,255,255,0.15),
+        inset 0 0 120px rgba(0,0,0,0.28),
+        0 18px 40px rgba(0,0,0,0.35);
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    /* 나중에 교체용 이미지 자리 */
+    #mirror::before {
+      content: "거울 이미지 대체 영역 / 나중에 실제 이미지 또는 텍스처 삽입";
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 1;
+      font-size: 11px;
+      color: rgba(255,255,255,0.28);
+      letter-spacing: 0.03em;
+      pointer-events: none;
+    }
+
+    #mirror::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.14) 48%, transparent 60%),
+        linear-gradient(to bottom, rgba(255,255,255,0.08), transparent 30%, transparent 70%, rgba(0,0,0,0.18));
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    video, canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      z-index: 2;
+    }
+
+    #delayCanvas {
+      opacity: 0.82;
+      mix-blend-mode: screen;
+    }
+
+    #flashFace {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 82px;
+      background: rgba(0, 0, 0, 0.18);
+      z-index: 8;
+    }
+
+    .mirror-hint {
+      margin-top: 12px;
+      text-align: center;
+      font-size: 13px;
+      color: rgba(255,255,255,0.72);
+      letter-spacing: 0.01em;
+    }
+
+    /* 메시지 */
+    #messageBox {
+      position: absolute;
+      left: 50%;
+      bottom: 58px;
+      transform: translateX(-50%);
+      width: min(680px, calc(100% - 80px));
+      min-height: 74px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: rgba(10,10,10,0.46);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.25);
+      backdrop-filter: blur(4px);
+    }
+
+    #messageTitle {
+      font-size: 12px;
+      color: #b7b7b7;
+      margin-bottom: 8px;
+      letter-spacing: 0.06em;
+    }
+
+    #messageText {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #f2f2f2;
+    }
+
+    /* 오른쪽 패널 */
+    .panel {
+      position: relative;
+      height: 100%;
+      background:
+        linear-gradient(180deg, #313131 0%, #242424 28%, #191919 100%);
+      border-left: 2px solid rgba(255,255,255,0.08);
+      box-shadow: inset 10px 0 24px rgba(0,0,0,0.25);
+      padding: 36px 18px 18px;
+    }
+
+    .panel-header {
+      margin-bottom: 18px;
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .panel-sub {
+      font-size: 12px;
+      color: #b0b0b0;
+      line-height: 1.5;
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .elevator-btn,
+    .panel-btn,
+    .action-btn,
+    .modal-btn {
+      border: none;
+      outline: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, filter 0.15s ease, background 0.2s ease;
+    }
+
+    .elevator-btn {
+      height: 72px;
+      border-radius: 10px;
+      background:
+        linear-gradient(180deg, #969696, #6c6c6c 55%, #555555);
+      color: #121212;
+      font-size: 24px;
+      font-weight: 800;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.28),
+        0 4px 10px rgba(0,0,0,0.28);
+    }
+
+    .elevator-btn:hover,
+    .panel-btn:hover,
+    .action-btn:hover,
+    .modal-btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+    }
+
+    .elevator-btn.active {
+      background:
+        linear-gradient(180deg, #ffe3a1, #eabf63 55%, #b38833);
+      color: #201400;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.45),
+        0 0 18px rgba(255, 208, 102, 0.28);
+    }
+
+    .panel-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin: 16px 0;
+    }
+
+    .panel-btn {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.08);
+      color: #f2f2f2;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    .panel-note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #b3b3b3;
+      line-height: 1.6;
+    }
+
+    /* 정보 패널 */
+    #infoDrawer {
+      position: absolute;
+      top: 0;
+      right: -390px;
+      width: 390px;
+      height: 100%;
+      background:
+        linear-gradient(180deg, rgba(19,19,19,0.98), rgba(29,29,29,0.98));
+      border-left: 1px solid rgba(255,255,255,0.1);
+      box-shadow: -12px 0 30px rgba(0,0,0,0.25);
+      padding: 26px 22px;
+      transition: right 0.35s ease;
+      z-index: 20;
+      overflow-y: auto;
+    }
+
+    #infoDrawer.open {
+      right: 0;
+    }
+
+    .drawer-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .drawer-title {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .drawer-close {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      width: 34px;
+      height: 34px;
+      cursor: pointer;
+    }
+
+    .myth-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .myth-card h4 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .myth-card p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.7;
+      color: #ddd;
+    }
+
+    .myth-card .sub {
+      margin-top: 10px;
+      color: #b7b7b7;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    /* 모달 */
+    #modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.55);
+      z-index: 50;
+      padding: 20px;
+    }
+
+    #modal.show {
+      display: flex;
+    }
+
+    .modal-box {
+      width: min(420px, 100%);
+      background: linear-gradient(180deg, #2e2e2e, #1f1f1f);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .modal-text {
+      font-size: 15px;
+      color: #dfdfdf;
+      line-height: 1.7;
+      margin-bottom: 18px;
+    }
+
+    .modal-btn {
+      width: 100%;
+      padding: 13px 16px;
+      border-radius: 10px;
+      background: #e5d0a6;
+      color: #1a1a1a;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    /* 효과 */
+    .shake-once {
+      animation: shakeOnce 0.45s ease;
+    }
+
+    @keyframes shakeOnce {
+      0% { transform: translate(0, 0); }
+      20% { transform: translate(4px, 0); }
+      40% { transform: translate(-5px, 1px); }
+      60% { transform: translate(4px, -1px); }
+      80% { transform: translate(-3px, 0); }
+      100% { transform: translate(0, 0); }
+    }
+
+    .light-flicker {
+      animation: lightFlicker 0.45s ease;
+    }
+
+    @keyframes lightFlicker {
+      0% { filter: brightness(1); }
+      20% { filter: brightness(0.78); }
+      40% { filter: brightness(0.9); }
+      60% { filter: brightness(0.68); }
+      100% { filter: brightness(0.82); }
+    }
+
+    .static-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(255,255,255,0.02) 0px,
+          rgba(255,255,255,0.02) 1px,
+          transparent 2px,
+          transparent 4px
+        );
+      mix-blend-mode: soft-light;
+      opacity: 0.35;
+      z-index: 6;
+    }
+
+    @media (max-width: 980px) {
+      #elevatorScene.show {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 210px;
+        z-index: 10;
+      }
+
+      .mirror-wrap {
+        width: min(420px, calc(100vw - 280px));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div id="doorWrap">
+      <div class="door" id="doorLeft"></div>
+      <div class="door" id="doorRight"></div>
+    </div>
+
+    <div id="elevatorScene">
+      <section class="left-wall" id="leftWall">
+        <div class="ceiling-light" id="ceilingLight"></div>
+
+        <div class="floor-display">
+          <div class="label">CURRENT FLOOR</div>
+          <div class="value" id="floorDisplayValue">1</div>
+        </div>
+
+        <div class="mirror-wrap">
+          <div id="mirror">
+            <video id="cam" autoplay muted playsinline></video>
+            <canvas id="delayCanvas"></canvas>
+            <div class="static-overlay"></div>
+            <div id="flashFace">😈</div>
+          </div>
+          <div class="mirror-hint">거울을 눌러 확인해보세요</div>
+        </div>
+
+        <div id="messageBox">
+          <div id="messageTitle">엘리베이터 안내</div>
+          <div id="messageText">문이 열렸습니다. 층 버튼을 선택하거나, 오른쪽의 미신 기록을 확인해보세요.</div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-header">
+          <div class="panel-title">엘리베이터 패널</div>
+          <div class="panel-sub">
+            버튼을 눌러 이동하거나,<br />
+            엘리베이터 속 미신 기록을 읽어볼 수 있습니다.
+          </div>
+        </div>
+
+        <div class="button-grid" id="buttonGrid">
+          <button class="elevator-btn" data-floor="5">5</button>
+          <button class="elevator-btn" data-floor="4">4</button>
+          <button class="elevator-btn" data-floor="3">3</button>
+          <button class="elevator-btn" data-floor="2">2</button>
+          <button class="elevator-btn" data-floor="1">1</button>
+        </div>
+
+        <div class="panel-divider"></div>
+
+        <button class="panel-btn" id="openInfoBtn">엘리베이터 속 미신 읽기</button>
+        <button class="panel-btn" id="resetBtn">패널 원래대로 되돌리기</button>
+
+        <div class="panel-note">
+          이미지 추천 자리 표시:<br />
+          - 금속 벽 텍스처 이미지<br />
+          - 거울 얼룩 이미지<br />
+          - 버튼 패널 클로즈업 이미지
+        </div>
+      </aside>
+    </div>
+
+    <div id="infoDrawer">
+      <div class="drawer-head">
+        <div class="drawer-title">엘리베이터 속 미신</div>
+        <button class="drawer-close" id="closeInfoBtn">×</button>
+      </div>
+
+      <div class="myth-card">
+        <h4>1층 — 시작의 층</h4>
+        <p>
+          엘리베이터는 대부분 1층에서 가장 익숙하게 느껴집니다. 그래서 어떤 사람들은 1층을
+          “현실로 돌아오는 기준점”처럼 받아들이기도 합니다.
+        </p>
+        <div class="sub">
+          낯선 층을 오가다가도 1층에 도착하면 안도감을 느끼는 이유가 여기에서 나오기도 합니다.
+        </div>
+      </div>
+
+      <div class="myth-card">
+        <h4>2층 — 생활감이 강한 층</h4>
+        <p>
+          낮은 층은 사람이 자주 드나들고 소리도 쉽게 남습니다. 그래서 “누가 방금 지나간 것 같다”
+          같은 느낌이 가장 자주 드는 구간이기도 합니다.
+        </p>
+        <div class="sub">
+          실제 미신이라기보다, 익숙한 생활 소음이 불안을 더 현실적으로 만드는 경우가 많습니다.
+        </div>
+      </div>
+
+      <div class="myth-card">
+        <h4>3층 — 시간감이 어긋나는 층</h4>
+        <p>
+          오래된 괴담에서는 3이라는 숫자가 완전함과 불길함을 동시에 갖는다고 여겨졌습니다.
+          그래서 “잠깐 탔는데 생각보다 오래 걸렸다” 같은 체감이 자주 이야기됩니다.
+        </p>
+        <div class="sub">
+          새벽 3시와 연결되는 공포 연출도 이런 상징에서 많이 가져옵니다.
+        </div>
+      </div>
+
+      <div class="myth-card">
+        <h4>4층 — 빠지는 층</h4>
+        <p>
+          동아시아권에서는 숫자 4의 발음이 죽음을 떠올리게 해서, 실제로 건물에서 4층을 F로 표기하거나
+          아예 건너뛰는 경우도 있습니다.
+        </p>
+        <div class="sub">
+          그래서 엘리베이터 괴담에서는 4층이 “존재하지만 말하지 않는 층”처럼 자주 사용됩니다.
+        </div>
+      </div>
+
+      <div class="myth-card">
+        <h4>거울 — 확인하는 도구이자 불안을 키우는 장치</h4>
+        <p>
+          엘리베이터 거울은 뒤를 보기 쉽게 만들기 위한 안전 요소이기도 하지만,
+          폐쇄된 공간에서 자신의 모습을 반복해서 보게 만든다는 점 때문에 미신의 대상이 되기도 했습니다.
+        </p>
+        <div class="sub">
+          반응이 늦거나, 익숙한 표정이 아닌 것처럼 보이는 순간 사람은 강한 불쾌감을 느낍니다.
+        </div>
+      </div>
+    </div>
+
+    <div id="modal">
+      <div class="modal-box">
+        <div class="modal-title">문 앞에서 이상한 생각이 들었다</div>
+        <div class="modal-text">우리 아파트에 4층이 있었던가..?</div>
+        <button class="modal-btn" id="goHomeBtn">집으로 가기</button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="laughSound" preload="auto">
+    <source src="https://www.myinstants.com/media/sounds/evil-laugh.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const doorWrap = document.getElementById("doorWrap");
+    const elevatorScene = document.getElementById("elevatorScene");
+    const leftWall = document.getElementById("leftWall");
+    const floorDisplayValue = document.getElementById("floorDisplayValue");
+    const messageText = document.getElementById("messageText");
+    const buttonGrid = document.getElementById("buttonGrid");
+    const mirror = document.getElementById("mirror");
+    const flashFace = document.getElementById("flashFace");
+    const laughSound = document.getElementById("laughSound");
+    const modal = document.getElementById("modal");
+    const goHomeBtn = document.getElementById("goHomeBtn");
+    const infoDrawer = document.getElementById("infoDrawer");
+    const openInfoBtn = document.getElementById("openInfoBtn");
+    const closeInfoBtn = document.getElementById("closeInfoBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    const cam = document.getElementById("cam");
+    const delayCanvas = document.getElementById("delayCanvas");
+    const ctx = delayCanvas.getContext("2d", { willReadFrequently: true });
+
+    let frames = [];
+    let mirrorOn = false;
+    let currentFloor = 1;
+    let floor4Count = 0;
+
+    const floorMessages = {
+      1: "1층에 도착하였습니다. 가장 익숙한 층인데도, 오늘은 조금 조용하게 느껴집니다.",
+      2: "2층에 도착하였습니다. 담이가 여기 살았던가? 누군가 방금 지나간 것 같은 기분이 듭니다.",
+      3: "3층에 도착하였습니다. 오늘 저녁은 뭐 먹지? 별 생각 아닌데도 이상하게 오래 머무른 것 같습니다.",
+      5: "5층에 도착하였습니다. 집에 도착했다. 그런데 문 앞이 조금 낯설게 느껴집니다."
+    };
+
+    function setMessage(text) {
+      messageText.textContent = text;
+    }
+
+    function setFloorDisplay(value) {
+      floorDisplayValue.textContent = value;
+    }
+
+    function setActiveButton(floor) {
+      document.querySelectorAll(".elevator-btn").forEach(btn => {
+        btn.classList.remove("active");
+        if (btn.dataset.floor === String(floor)) {
+          btn.classList.add("active");
+        }
+      });
+    }
+
+    function resetButtons() {
+      const order = [5, 4, 3, 2, 1];
+      const buttons = buttonGrid.querySelectorAll(".elevator-btn");
+      buttons.forEach((btn, idx) => {
+        btn.textContent = order[idx];
+        btn.dataset.floor = String(order[idx]);
+      });
+    }
+
+    function scrambleButtons() {
+      const labels = ["2", "5", "1", "4", "3"];
+      const buttons = buttonGrid.querySelectorAll(".elevator-btn");
+      buttons.forEach((btn, idx) => {
+        btn.textContent = labels[idx];
+      });
+    }
+
+    function floor4Effect() {
+      leftWall.classList.add("dimmed", "light-flicker", "shake-once");
+      setTimeout(() => {
+        leftWall.classList.remove("shake-once");
+      }, 450);
+    }
+
+    function clearFloor4Visual() {
+      leftWall.classList.remove("dimmed", "light-flicker", "shake-once");
+    }
+
+    function goFloor(floor) {
+      currentFloor = floor;
+      setFloorDisplay(floor);
+      clearFloor4Visual();
+      setActiveButton(floor);
+
+      if (floor === 4) {
+        floor4Count += 1;
+        floor4Effect();
+        scrambleButtons();
+
+        if (floor4Count === 1) {
+          setMessage("4층에 도착한 것 같은데, 패널 숫자가 잠깐 이상하게 보입니다. 조명이 살짝 꺼진 것처럼 어두워졌습니다.");
+        } else if (floor4Count === 2) {
+          setMessage("또 4층입니다. 이번엔 버튼 배열이 분명히 어색합니다. 잠깐 내렸다가 다시 올라온 것 같은데, 기록이 맞지 않습니다.");
+        } else {
+          setMessage("계속 4층에 멈춘다는 느낌이 듭니다. 실제 엘리베이터 미신에서도 4층은 가장 자주 불길한 층으로 다뤄집니다.");
+        }
+
+        const existing = document.getElementById("exitBtn");
+        if (existing) existing.remove();
+
+        const btn = document.createElement("button");
+        btn.id = "exitBtn";
+        btn.className = "action-btn";
+        btn.textContent = "내리기";
+        btn.style.marginTop = "14px";
+        btn.style.padding = "12px 16px";
+        btn.style.borderRadius = "10px";
+        btn.style.background = "#d9c28d";
+        btn.style.color = "#1a1a1a";
+        btn.style.fontWeight = "700";
+        btn.onclick = () => {
+          modal.classList.add("show");
+        };
+        document.getElementById("messageBox").appendChild(btn);
+        return;
+      }
+
+      const oldExit = document.getElementById("exitBtn");
+      if (oldExit) oldExit.remove();
+
+      resetButtons();
+      setMessage(floorMessages[floor] || "층에 도착하였습니다.");
+    }
+
+    function goHome() {
+      modal.classList.remove("show");
+      resetButtons();
+      clearFloor4Visual();
+      goFloor(5);
+    }
+
+    async function setupCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        cam.srcObject = stream;
+      } catch (err) {
+        setMessage("카메라 권한이 없어서 거울 대신 기본 화면으로 표시됩니다.");
+      }
+    }
+
+    function startMirrorDelay() {
+      setInterval(() => {
+        if (!cam.videoWidth || !cam.videoHeight) return;
+
+        delayCanvas.width = cam.videoWidth;
+        delayCanvas.height = cam.videoHeight;
+
+        ctx.drawImage(cam, 0, 0, delayCanvas.width, delayCanvas.height);
+
+        try {
+          frames.push(ctx.getImageData(0, 0, delayCanvas.width, delayCanvas.height));
+          if (frames.length > 14) frames.shift();
+          if (frames.length > 7) {
+            ctx.putImageData(frames[0], 0, 0);
+          }
+        } catch (e) {
+          /* 일부 환경 예외 무시 */
+        }
+      }, 120);
+    }
+
+    function triggerMirrorEvent() {
+      mirrorOn = !mirrorOn;
+
+      if (mirrorOn) {
+        laughSound.currentTime = 0;
+        laughSound.play().catch(() => {});
+
+        setMessage("뭐야..? 거울이 평소보다 늦게 따라오는 것 같습니다. 엘리베이터 거울과 관련된 미신은 폐쇄된 공간에서의 불안감에서 시작되곤 합니다.");
+
+        flashFace.style.display = "flex";
+        setTimeout(() => {
+          flashFace.style.display = "none";
+        }, 100);
+      } else {
+        setMessage("...방금 뭐였지.. 거울은 원래 뒤를 보기 위한 안전 장치지만, 이상하게 보이면 가장 먼저 분위기를 바꿔버립니다.");
+      }
+    }
+
+    function openInfo() {
+      infoDrawer.classList.add("open");
+    }
+
+    function closeInfo() {
+      infoDrawer.classList.remove("open");
+    }
+
+    openInfoBtn.addEventListener("click", openInfo);
+    closeInfoBtn.addEventListener("click", closeInfo);
+    resetBtn.addEventListener("click", () => {
+      resetButtons();
+      clearFloor4Visual();
+      setActiveButton(currentFloor);
+      setMessage("패널을 원래 상태로 되돌렸습니다. 실제 엘리베이터처럼 정돈된 상태로 보입니다.");
+    });
+    goHomeBtn.addEventListener("click", goHome);
+    mirror.addEventListener("click", triggerMirrorEvent);
+
+    buttonGrid.addEventListener("click", (e) => {
+      const btn = e.target.closest(".elevator-btn");
+      if (!btn) return;
+
+      const actualFloor = Number(btn.dataset.floor);
+      if (!Number.isNaN(actualFloor)) {
+        goFloor(actualFloor);
+      }
+    });
+
+    window.addEventListener("load", async () => {
+      await setupCamera();
+      startMirrorDelay();
+
+      setTimeout(() => {
+        doorWrap.classList.add("open");
+        setTimeout(() => {
+          elevatorScene.classList.add("show");
+        }, 900);
+      }, 400);
+    });
+  </script>
+</body>
+</html>

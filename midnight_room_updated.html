@@ -1,0 +1,2671 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>방 안의 미신 : Midnight Room</title>
+  <style>
+    :root{
+      --text:#f4f1eb;
+      --muted:#b7b0a4;
+      --gold:#d1b07a;
+      --danger:#c16e6e;
+      --shadow:rgba(0,0,0,.45);
+      --room-scale:1;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+
+    body{
+      margin:0;
+      overflow:hidden;
+      font-family:"Pretendard","Noto Sans KR",system-ui,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 50% 20%, rgba(255,255,255,.03), transparent 28%),
+        linear-gradient(180deg, #181b22 0%, #0f1116 100%);
+    }
+
+    .app{
+      width:100vw;
+      height:100vh;
+      position:relative;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at center, rgba(255,255,255,.025), transparent 40%),
+        linear-gradient(180deg, #1b1d25 0%, #111319 100%);
+    }
+
+    #intro{
+      position:absolute; inset:0; z-index:100;
+      display:flex; align-items:center; justify-content:center;
+      background:
+        radial-gradient(circle at center, rgba(255,255,255,.03), transparent 45%),
+        linear-gradient(180deg, rgba(3,4,8,.65), rgba(3,4,8,.88));
+    }
+
+    .intro-box{
+      width:min(620px, calc(100% - 40px));
+      padding:34px 30px;
+      border-radius:24px;
+      background:rgba(14,16,22,.88);
+      border:1px solid rgba(255,255,255,.09);
+      box-shadow:0 28px 80px rgba(0,0,0,.48);
+      text-align:center;
+      backdrop-filter: blur(8px);
+    }
+
+    .eyebrow{
+      font-size:12px;
+      letter-spacing:.22em;
+      color:#cab089;
+      margin-bottom:14px;
+    }
+
+    .intro-title{
+      font-size:34px;
+      font-weight:900;
+      margin-bottom:16px;
+    }
+
+    .intro-text{
+      color:#d8d2c7;
+      font-size:15px;
+      line-height:1.95;
+      margin-bottom:24px;
+    }
+
+    .btn{
+      border:none;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+
+    .btn:hover{
+      transform:translateY(-1px);
+      filter:brightness(1.05);
+    }
+
+    .start-btn{
+      padding:14px 26px;
+      border-radius:14px;
+      background:linear-gradient(180deg, #e0c79c, #bb9561);
+      color:#161616;
+      font-weight:900;
+      font-size:15px;
+      box-shadow:0 10px 24px rgba(0,0,0,.25);
+    }
+
+    #scene{
+      display:none;
+      width:100%;
+      height:100%;
+      grid-template-columns:minmax(0,1fr) 330px;
+    }
+
+    #scene.show{ display:grid; }
+
+    .room{
+      position:relative;
+      overflow:hidden;
+      min-width:0;
+      background:
+        radial-gradient(circle at 50% 14%, rgba(255,239,197,.06), transparent 25%),
+        linear-gradient(180deg, #3d3a45 0%, #2a2831 40%, #18161d 100%);
+    }
+
+    .room::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        linear-gradient(90deg, rgba(0,0,0,.1), transparent 18%, transparent 82%, rgba(0,0,0,.15)),
+        linear-gradient(180deg, rgba(255,255,255,.02), transparent 20%);
+      pointer-events:none;
+      z-index:1;
+    }
+
+    .room.dark{
+      filter:saturate(.8) brightness(.72);
+    }
+
+    .room-stage{
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:1280px;
+      height:780px;
+      transform:translate(-50%, -50%) scale(var(--room-scale));
+      transform-origin:center center;
+      z-index:2;
+    }
+
+    .ceiling-light{
+      position:absolute;
+      left:50%; top:18px; transform:translateX(-50%);
+      width:270px; height:30px; border-radius:20px;
+      background:linear-gradient(180deg, #fff1c8, #bca583);
+      box-shadow:0 0 32px rgba(255,232,174,.28), 0 0 120px rgba(255,232,174,.12);
+      z-index:5;
+      transition:.35s ease;
+    }
+
+    .room.dark .ceiling-light{ opacity:.16; }
+
+    .floor{
+      position:absolute; left:0; right:0; bottom:0; height:210px;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          #4a3a2f 0, #4a3a2f 52px,
+          #3d3027 52px, #3d3027 56px
+        );
+      box-shadow: inset 0 18px 40px rgba(0,0,0,.28);
+      z-index:2;
+    }
+
+    .rug{
+      position:absolute;
+      left:50%; bottom:58px; transform:translateX(-50%);
+      width:660px;
+      height:118px;
+      border-radius:999px;
+      background:
+        radial-gradient(circle at center, rgba(145,41,44,.48), rgba(59,18,22,.78) 68%, rgba(20,10,12,.94) 100%);
+      box-shadow:0 18px 40px rgba(0,0,0,.35);
+      z-index:3;
+    }
+
+    .fog{
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 20% 65%, rgba(255,255,255,.03), transparent 20%),
+        radial-gradient(circle at 70% 55%, rgba(255,255,255,.025), transparent 22%);
+      pointer-events:none;
+      z-index:4;
+      opacity:.9;
+    }
+
+    .window{
+      position:absolute;
+      left:60px; top:88px;
+      width:220px; height:175px;
+      border:10px solid #4a4c53;
+      background:linear-gradient(180deg, #35445f, #0f1722 82%);
+      box-shadow: inset 0 0 30px rgba(0,0,0,.3);
+      z-index:6;
+      cursor:pointer;
+    }
+
+    .window::before,.window::after{
+      content:"";
+      position:absolute;
+      background:rgba(255,255,255,.13);
+    }
+
+    .window::before{
+      width:10px; height:100%; left:50%; transform:translateX(-50%);
+    }
+
+    .window::after{
+      width:100%; height:10px; top:50%; transform:translateY(-50%);
+    }
+
+    .rain-streak{
+      position:absolute; inset:0;
+      background:
+        repeating-linear-gradient(100deg,
+          transparent 0px,
+          transparent 10px,
+          rgba(255,255,255,.05) 11px,
+          transparent 13px,
+          transparent 22px);
+      opacity:.35;
+      pointer-events:none;
+    }
+
+    .window-shadow{
+      position:absolute;
+      left:90px; top:245px;
+      width:240px; height:170px;
+      background:linear-gradient(180deg, rgba(121,161,255,.08), transparent 70%);
+      transform:skewX(-18deg);
+      filter:blur(5px);
+      z-index:2;
+      pointer-events:none;
+    }
+
+    .bookshelf{
+      position:absolute;
+      left:330px; top:86px;
+      width:170px; height:290px;
+      z-index:8;
+      cursor:pointer;
+    }
+
+    .shelf-body{
+      position:absolute; inset:0;
+      border-radius:10px 10px 4px 4px;
+      background:linear-gradient(180deg, #6a5443, #402f25 78%);
+      box-shadow:0 20px 30px rgba(0,0,0,.28);
+      border:1px solid rgba(255,255,255,.06);
+    }
+
+    .shelf-line{
+      position:absolute; left:10px; right:10px; height:8px;
+      background:#2b201a; border-radius:10px;
+    }
+
+    .shelf-line.s1{ top:72px; }
+    .shelf-line.s2{ top:142px; }
+    .shelf-line.s3{ top:212px; }
+
+    .book{
+      position:absolute;
+      width:18px;
+      border-radius:3px 3px 0 0;
+      box-shadow: inset -2px 0 0 rgba(255,255,255,.08);
+      transition:transform .25s ease, filter .25s ease;
+    }
+
+    .b-a{ left:20px; top:20px; height:48px; background:#7c6d5a; }
+    .b-b{ left:42px; top:18px; height:50px; background:#51606d; }
+    .b-c{ left:64px; top:24px; height:44px; background:#8d6358; }
+    .b-d{ left:86px; top:16px; height:52px; background:#54524d; }
+    .b-e{ left:108px; top:22px; height:46px; background:#78685e; }
+    .b-f{ left:28px; top:92px; height:42px; background:#6d5654; }
+    .b-g{ left:50px; top:90px; height:44px; background:#495d64; }
+    .b-h{ left:72px; top:96px; height:38px; background:#836558; }
+    .b-i{ left:98px; top:88px; height:46px; background:#6d6a62; }
+    .b-j{ left:120px; top:94px; height:40px; background:#9a7862; }
+    .b-k{ left:22px; top:162px; height:42px; background:#5a4d43; }
+    .b-l{ left:44px; top:158px; height:46px; background:#626a75; }
+    .b-m{ left:66px; top:164px; height:40px; background:#885a50; }
+    .b-n{ left:88px; top:156px; height:48px; background:#6f675c; }
+    .b-o{ left:110px; top:162px; height:42px; background:#4d535a; }
+
+    .diary{
+      position:absolute;
+      right:18px; bottom:18px;
+      width:74px; height:42px;
+      border-radius:6px;
+      background:linear-gradient(180deg, #3d3230, #221a18);
+      border:1px solid rgba(255,255,255,.05);
+      box-shadow:0 8px 18px rgba(0,0,0,.22);
+    }
+
+    .diary::after{
+      content:"紅";
+      position:absolute; right:10px; top:8px;
+      color:#b44545; font-weight:900; font-size:20px; opacity:.72;
+    }
+
+    .bookshelf.weird .book:nth-child(4){ transform:translateY(-4px) rotate(-5deg); }
+    .bookshelf.weird .book:nth-child(7){ transform:translateY(2px) rotate(4deg); }
+    .bookshelf.weird .book:nth-child(10){ transform:translateY(-6px) rotate(-6deg); }
+
+    .bed{
+      position:absolute;
+      left:150px; bottom:118px;
+      width:360px; height:180px;
+      z-index:9;
+    }
+
+    .bed-frame{
+      position:absolute; inset:0;
+      border-radius:18px 18px 5px 5px;
+      background:linear-gradient(180deg, #705b49, #44362c 76%);
+      box-shadow:0 16px 28px rgba(0,0,0,.28);
+    }
+
+    .mattress{
+      position:absolute; left:12px; right:12px; top:10px; height:64px;
+      border-radius:12px;
+      background:linear-gradient(180deg, #ddd8d4, #c7c8cc);
+    }
+
+    .blanket{
+      position:absolute; left:18px; right:18px; top:48px; height:74px;
+      border-radius:16px;
+      background:linear-gradient(180deg, #606777, #434954);
+    }
+
+    .pillow{
+      position:absolute; top:18px; left:28px;
+      width:88px; height:28px; border-radius:999px; background:#efefef;
+    }
+
+    .underbed{
+      position:absolute; left:24px; right:24px; bottom:12px; height:44px;
+      border-radius:10px;
+      background:rgba(0,0,0,.72);
+      overflow:hidden;
+      cursor:pointer;
+    }
+
+    .underbed-glow{
+      position:absolute; inset:0;
+      background:radial-gradient(circle at center, rgba(255,255,255,.04), transparent 58%);
+    }
+
+    .underbed-eye{
+      position:absolute; top:12px;
+      width:14px; height:14px; border-radius:50%;
+      background:#ddd6a8;
+      box-shadow:0 0 12px rgba(255,245,180,.36);
+      opacity:0; transition:opacity .2s ease;
+    }
+
+    .underbed-eye.left{ left:110px; }
+    .underbed-eye.right{ left:138px; }
+
+    .ghost-hand{
+      position:absolute;
+      left:238px; bottom:162px;
+      width:52px; height:70px;
+      border-radius:30px 30px 16px 16px;
+      background:linear-gradient(180deg, #d9d3c7, #aaa393);
+      transform:rotate(-24deg) translateY(40px);
+      opacity:0;
+      filter:blur(1px);
+      transition:all .16s ease;
+      z-index:10;
+      pointer-events:none;
+    }
+
+    .ghost-hand.show{
+      opacity:.96;
+      transform:rotate(-24deg) translateY(0);
+    }
+
+    .chair-zone{
+      position:absolute;
+      left:560px; bottom:120px;
+      width:170px; height:220px;
+      z-index:10;
+      cursor:pointer;
+    }
+
+    .chair{
+      position:absolute; left:26px; bottom:0;
+      width:118px; height:150px;
+      transform-origin:50% 85%;
+      transition:transform .35s ease;
+    }
+
+    .chair.rock{
+      animation:rocking 1.2s ease-in-out 2;
+    }
+
+    @keyframes rocking{
+      0%{ transform:rotate(0deg) }
+      25%{ transform:rotate(2.8deg) }
+      50%{ transform:rotate(0deg) }
+      75%{ transform:rotate(-2.8deg) }
+      100%{ transform:rotate(0deg) }
+    }
+
+    .chair-back{
+      position:absolute; left:14px; top:0; width:90px; height:70px;
+      border-radius:12px 12px 0 0;
+      background:linear-gradient(180deg, #745a47, #49352a 75%);
+      box-shadow:0 8px 18px rgba(0,0,0,.2);
+    }
+
+    .chair-seat{
+      position:absolute; left:18px; top:56px; width:84px; height:18px;
+      border-radius:8px; background:#5a4437;
+    }
+
+    .leg{ position:absolute; width:10px; height:72px; background:#4c382d; bottom:16px; }
+    .l1{ left:24px; } .l2{ left:86px; }
+
+    .rocker{
+      position:absolute; bottom:0; width:56px; height:10px; border-radius:999px;
+      background:#463429;
+    }
+
+    .r1{ left:10px; transform:rotate(12deg); }
+    .r2{ left:56px; transform:rotate(-12deg); }
+
+    .doll{
+      position:absolute;
+      left:56px; top:20px;
+      width:54px; height:94px;
+      transition:transform .22s ease, filter .22s ease;
+      pointer-events:none;
+    }
+
+    .d-head{
+      position:absolute; left:10px; top:0;
+      width:34px; height:34px; border-radius:50%;
+      background:linear-gradient(180deg, #e1d6ca, #b9aca0);
+      box-shadow:inset 0 -3px 0 rgba(0,0,0,.08);
+    }
+
+    .d-hair{
+      position:absolute; left:7px; top:-2px;
+      width:40px; height:20px; border-radius:50px 50px 10px 10px;
+      background:#2f2726;
+    }
+
+    .d-eye{
+      position:absolute; top:15px; width:5px; height:5px; border-radius:50%;
+      background:#131313;
+      transition:all .2s ease;
+    }
+
+    .d-eye.left{ left:12px; }
+    .d-eye.right{ right:12px; }
+
+    .d-body{
+      position:absolute; left:8px; top:30px;
+      width:38px; height:46px;
+      border-radius:10px;
+      background:linear-gradient(180deg, #d0d4df, #9aa3b3);
+    }
+
+    .d-leg{
+      position:absolute; top:72px; width:7px; height:18px; background:#d7cbc0;
+      border-radius:8px;
+    }
+
+    .dl1{ left:18px; }
+    .dl2{ right:18px; }
+
+    .doll.glow .d-eye{
+      width:7px; height:7px;
+      background:#ddd3a4;
+      box-shadow:0 0 10px rgba(255,244,180,.42);
+    }
+
+    .clock{
+      position:absolute;
+      left:738px; top:82px;
+      width:98px; height:98px;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(255,255,255,.12), rgba(255,255,255,.04) 46%, rgba(0,0,0,.16) 100%),
+        #313741;
+      border:7px solid #a38f78;
+      box-shadow:0 10px 20px rgba(0,0,0,.22);
+      z-index:9;
+      cursor:pointer;
+    }
+
+    .clock::before{
+      content:"";
+      position:absolute; left:50%; top:50%;
+      width:8px; height:8px; border-radius:50%;
+      background:#e7dcc5;
+      transform:translate(-50%,-50%);
+      z-index:4;
+    }
+
+    .hand{
+      position:absolute;
+      left:50%; top:50%;
+      transform-origin:50% 100%;
+      background:#e7dcc5;
+      border-radius:999px;
+      transition:transform .25s ease;
+    }
+
+    .hour{ width:5px; height:24px; margin-left:-2.5px; margin-top:-24px; transform:rotate(20deg); }
+    .minute{ width:3px; height:34px; margin-left:-1.5px; margin-top:-34px; transform:rotate(120deg); }
+
+    .clock.four .hour{ transform:rotate(120deg); }
+    .clock.four .minute{ transform:rotate(0deg); }
+
+    .mark4{
+      position:absolute; right:18px; bottom:16px;
+      font-size:18px; font-weight:800;
+      color:rgba(255,255,255,.2);
+    }
+
+    .tv{
+      position:absolute;
+      left:860px; top:108px;
+      width:210px; height:130px;
+      z-index:9;
+      cursor:pointer;
+    }
+
+    .tv-frame{
+      position:absolute; inset:0;
+      border-radius:10px;
+      background:linear-gradient(180deg, #2b2e35, #111319);
+      border:4px solid #464a55;
+      box-shadow:0 14px 24px rgba(0,0,0,.28);
+    }
+
+    .tv-screen{
+      position:absolute;
+      left:12px; right:12px; top:10px; bottom:22px;
+      border-radius:6px;
+      background:
+        radial-gradient(circle at center, rgba(120,150,170,.08), rgba(6,9,14,.96)),
+        linear-gradient(180deg, #19222b, #05070b);
+      overflow:hidden;
+    }
+
+    .tv-screen::before{
+      content:"";
+      position:absolute; inset:0;
+      background:repeating-linear-gradient(
+        180deg,
+        rgba(255,255,255,.05) 0px,
+        rgba(255,255,255,.05) 1px,
+        transparent 2px,
+        transparent 4px
+      );
+      opacity:.18;
+    }
+
+    .tv-noise{
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(255,255,255,.09), transparent 18%),
+        radial-gradient(circle at 80% 60%, rgba(255,255,255,.05), transparent 14%),
+        radial-gradient(circle at 60% 40%, rgba(255,255,255,.04), transparent 12%);
+      opacity:0;
+      transition:opacity .2s ease;
+    }
+
+    .tv.active .tv-noise{ opacity:.9; }
+
+    .tv-stand{
+      position:absolute;
+      left:50%; bottom:0;
+      width:70px; height:12px;
+      transform:translateX(-50%);
+      border-radius:999px;
+      background:linear-gradient(180deg, #72634f, #4b4035);
+    }
+
+    .fan{
+      position:absolute;
+      right:220px; bottom:138px;
+      width:120px; height:220px;
+      z-index:9;
+      cursor:pointer;
+    }
+
+    .fan-head{
+      position:absolute; top:0; left:50%;
+      transform:translateX(-50%);
+      width:110px; height:110px;
+      border:6px solid #8e9197;
+      border-radius:50%;
+      background:radial-gradient(circle at center, rgba(255,255,255,.05), rgba(0,0,0,.18));
+      overflow:hidden;
+    }
+
+    .fan.on .fan-head{ animation:spinFan .34s linear infinite; }
+
+    @keyframes spinFan{
+      from{ transform:translateX(-50%) rotate(0deg); }
+      to{ transform:translateX(-50%) rotate(360deg); }
+    }
+
+    .fan-center{
+      position:absolute; left:50%; top:50%;
+      width:22px; height:22px;
+      transform:translate(-50%,-50%);
+      background:#9ba1a9; border-radius:50%; z-index:4;
+    }
+
+    .blade{
+      position:absolute; left:50%; top:50%;
+      width:14px; height:42px;
+      transform-origin:center -4px;
+      background:rgba(210,220,235,.52);
+      border-radius:999px;
+    }
+
+    .b1{ transform:translate(-50%,-50%) rotate(0deg); }
+    .b2{ transform:translate(-50%,-50%) rotate(120deg); }
+    .b3{ transform:translate(-50%,-50%) rotate(240deg); }
+
+    .fan-neck{
+      position:absolute; top:104px; left:50%;
+      width:10px; height:54px; transform:translateX(-50%);
+      background:#777d86; border-radius:10px;
+    }
+
+    .fan-stand{
+      position:absolute; top:155px; left:50%;
+      width:12px; height:48px; transform:translateX(-50%);
+      background:#8b9097;
+    }
+
+    .fan-base{
+      position:absolute; left:50%; bottom:0;
+      width:90px; height:22px; transform:translateX(-50%);
+      border-radius:999px;
+      background:linear-gradient(180deg, #737982, #595d63);
+    }
+
+    .fan-shadow{
+      position:absolute;
+      top:8px; left:-140px;
+      width:126px; height:180px;
+      background:radial-gradient(ellipse at center, rgba(0,0,0,.3), transparent 70%);
+      transform:skewY(18deg);
+      opacity:.45;
+      transition:.28s ease;
+      pointer-events:none;
+    }
+
+    .fan.weird .fan-shadow{
+      left:-174px; opacity:.75; filter:blur(2px);
+    }
+
+    .door-area{
+      position:absolute;
+      right:38px; bottom:182px;
+      width:182px; height:334px;
+      z-index:9;
+    }
+
+    .door{
+      position:absolute; inset:0;
+      border-radius:8px 8px 0 0;
+      background:linear-gradient(180deg, #6b5648, #433429 76%);
+      border:2px solid rgba(255,255,255,.08);
+      overflow:hidden;
+      cursor:pointer;
+    }
+
+    .door::after{
+      content:"";
+      position:absolute;
+      top:152px; right:18px;
+      width:14px; height:14px; border-radius:50%;
+      background:#d2b685;
+      box-shadow:0 0 4px rgba(255,255,255,.15);
+    }
+
+    .door-gap{
+      position:absolute; top:0; right:0; width:0; height:100%;
+      background:linear-gradient(270deg, rgba(255,255,255,.22), rgba(0,0,0,.65));
+      transition:width .3s ease;
+    }
+
+    .door.open .door-gap{ width:16px; }
+
+    .threshold{
+      position:absolute; left:-10px; right:-10px; bottom:-12px;
+      height:18px; border-radius:999px;
+      background:linear-gradient(180deg, #9a8e78, #6f6450);
+      cursor:pointer;
+      box-shadow:0 4px 10px rgba(0,0,0,.2);
+    }
+
+    .threshold-mark{
+      position:absolute; left:12px; right:12px; top:6px;
+      height:3px; border-radius:999px;
+      background:rgba(0,0,0,.22);
+    }
+
+    .door-shadow-figure{
+      position:absolute;
+      bottom:26px; right:8px;
+      width:54px; height:132px;
+      background:linear-gradient(180deg, rgba(0,0,0,.92), rgba(0,0,0,.1));
+      border-radius:100px 100px 30px 30px;
+      opacity:0;
+      filter:blur(8px);
+      transition:opacity .22s ease;
+      pointer-events:none;
+    }
+
+    .dresser{
+      position:absolute;
+      right:360px; top:260px;
+      width:170px; height:126px;
+      z-index:8;
+      cursor:pointer;
+    }
+
+    .dresser-body{
+      position:absolute; inset:0;
+      border-radius:12px 12px 8px 8px;
+      background:linear-gradient(180deg, #6d5442, #423128 80%);
+      box-shadow:0 14px 24px rgba(0,0,0,.24);
+    }
+
+    .drawer{
+      position:absolute; left:12px; right:12px; height:34px;
+      border-radius:8px; background:rgba(0,0,0,.12);
+      border:1px solid rgba(255,255,255,.04);
+    }
+
+    .dr1{ top:12px; }
+    .dr2{ top:52px; }
+    .dr3{ top:92px; }
+
+    .handle{
+      position:absolute; right:14px; top:50%;
+      width:18px; height:6px;
+      transform:translateY(-50%);
+      border-radius:999px; background:#c5ab83;
+    }
+
+    .clipper{
+      position:absolute; left:18px; top:-10px;
+      width:42px; height:14px; border-radius:10px;
+      background:linear-gradient(180deg, #aeb3bc, #737984);
+      transform:rotate(-12deg);
+      box-shadow:0 8px 14px rgba(0,0,0,.2);
+    }
+
+    .panel{
+      position:relative;
+      height:100%;
+      padding:26px 18px 18px;
+      background:
+        linear-gradient(180deg, #262831 0%, #1c1e26 35%, #12141a 100%);
+      border-left:1px solid rgba(255,255,255,.07);
+      box-shadow:inset 10px 0 30px rgba(0,0,0,.28);
+      z-index:20;
+      overflow-y:auto;
+    }
+
+    .panel-title{
+      font-size:22px; font-weight:900; margin-bottom:6px;
+    }
+
+    .panel-sub{
+      font-size:13px; line-height:1.7;
+      color:#bbb5aa; margin-bottom:16px;
+    }
+
+    .card{
+      background:rgba(255,255,255,.045);
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:16px;
+      padding:14px;
+      margin-bottom:14px;
+    }
+
+    .status-row{
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:8px; font-size:14px;
+    }
+
+    .status-row:last-child{ margin-bottom:0; }
+
+    .fear-bar{
+      margin-top:10px;
+      height:12px; border-radius:999px; overflow:hidden;
+      background:rgba(255,255,255,.08);
+    }
+
+    .fear-fill{
+      width:0%; height:100%;
+      background:linear-gradient(90deg, #c2d3a2, #d6ab73, #ba6666);
+      transition:width .28s ease;
+    }
+
+    .action-btn{
+      width:100%;
+      margin-bottom:10px;
+      padding:12px 14px;
+      border-radius:12px;
+      background:rgba(255,255,255,.07);
+      color:#f4f4f4;
+      text-align:left;
+      font-size:14px;
+    }
+
+    .action-btn:hover{ background:rgba(255,255,255,.1); }
+
+    .danger-btn{
+      width:100%;
+      margin-top:12px;
+      padding:13px 14px;
+      border-radius:12px;
+      background:linear-gradient(180deg, #cb6b6b, #8d3434);
+      color:#fff;
+      font-weight:900;
+      display:none;
+    }
+
+    .danger-btn.show{ display:block; }
+
+    .note{
+      font-size:12px; line-height:1.7; color:#b5b5b5;
+    }
+
+    #messageBox{
+      position:absolute;
+      left:50%; bottom:24px; transform:translateX(-50%);
+      width:min(920px, calc(100% - 40px));
+      min-height:84px;
+      padding:16px 18px;
+      border-radius:16px;
+      background:rgba(8,9,12,.42);
+      border:1px solid rgba(255,255,255,.09);
+      backdrop-filter: blur(6px);
+      box-shadow:0 12px 26px rgba(0,0,0,.28);
+      z-index:30;
+    }
+
+    #messageTitle{
+      font-size:12px;
+      letter-spacing:.1em;
+      color:#b7b0a4;
+      margin-bottom:8px;
+    }
+
+    #messageText{
+      font-size:16px;
+      line-height:1.78;
+      color:#f2eee7;
+    }
+
+    #infoDrawer{
+      position:absolute;
+      top:0; right:-420px;
+      width:420px; height:100%;
+      padding:24px 20px;
+      background:linear-gradient(180deg, rgba(20,21,25,.98), rgba(25,26,30,.98));
+      border-left:1px solid rgba(255,255,255,.09);
+      box-shadow:-18px 0 40px rgba(0,0,0,.34);
+      transition:right .34s ease;
+      overflow-y:auto;
+      z-index:40;
+    }
+
+    #infoDrawer.open{ right:0; }
+
+    .drawer-head{
+      display:flex; justify-content:space-between; align-items:center;
+      margin-bottom:16px;
+    }
+
+    .drawer-title{ font-size:20px; font-weight:900; }
+
+    .drawer-btn{
+      width:34px; height:34px; border-radius:10px;
+      background:rgba(255,255,255,.08); color:#fff; border:none; cursor:pointer;
+    }
+
+    .myth-card{
+      margin-bottom:14px;
+      padding:15px;
+      border-radius:16px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.07);
+    }
+
+    .myth-card h4{
+      margin:0 0 10px;
+      font-size:16px;
+    }
+
+    .myth-card p{
+      margin:0;
+      font-size:14px;
+      line-height:1.8;
+      color:#ddd8d0;
+    }
+
+    .myth-card .sub{
+      margin-top:10px;
+      font-size:12px;
+      line-height:1.7;
+      color:#b6b0a7;
+    }
+
+    #endingModal,
+    #diaryModal,
+    #dresserModal{
+      position:fixed;
+      inset:0;
+      z-index:80;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      background:rgba(0,0,0,.72);
+    }
+
+    #endingModal.show,
+    #diaryModal.show,
+    #dresserModal.show{
+      display:flex;
+    }
+
+    .modal-box{
+      width:min(500px,100%);
+      padding:26px;
+      border-radius:20px;
+      background:linear-gradient(180deg, #2b2b31, #18191e);
+      border:1px solid rgba(255,255,255,.1);
+      box-shadow:0 20px 40px rgba(0,0,0,.4);
+      text-align:center;
+    }
+
+    .modal-title{
+      font-size:24px; font-weight:900; margin-bottom:12px;
+    }
+
+    .modal-text{
+      font-size:15px; line-height:1.85; color:#e3dfd7; margin-bottom:18px;
+    }
+
+    .modal-btn{
+      width:100%;
+      padding:13px 16px;
+      border-radius:12px;
+      border:none;
+      cursor:pointer;
+      background:linear-gradient(180deg, #e1cca6, #bd9661);
+      color:#171717;
+      font-weight:900;
+      font-size:15px;
+      margin-top:10px;
+    }
+
+    .modal-btn.secondary{
+      background:rgba(255,255,255,.12);
+      color:#fff;
+    }
+
+    .diary-book{
+      width:min(760px, 100%);
+      background:linear-gradient(180deg, #5a4634, #2f241d);
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:24px;
+      box-shadow:0 28px 70px rgba(0,0,0,.45);
+      overflow:hidden;
+    }
+
+    .diary-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:18px 20px;
+      background:rgba(0,0,0,.18);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+
+    .diary-title{
+      font-size:22px;
+      font-weight:900;
+      color:#f2e6d7;
+    }
+
+    .diary-close{
+      width:40px; height:40px;
+      border:none;
+      border-radius:12px;
+      background:rgba(255,255,255,.1);
+      color:#fff;
+      font-size:20px;
+      cursor:pointer;
+    }
+
+    .diary-pages{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:0;
+      min-height:420px;
+      background:linear-gradient(180deg, #e5d6b8, #d7c39e);
+    }
+
+    .diary-page{
+      padding:28px 24px;
+      color:#3b2c21;
+      position:relative;
+    }
+
+    .diary-page.left{
+      border-right:1px solid rgba(70,40,25,.18);
+    }
+
+    .diary-hand{
+      font-size:18px;
+      line-height:2;
+      color:#5a4233;
+    }
+
+    .diary-red{
+      display:block;
+      margin:30px 0 18px;
+      font-size:42px;
+      font-weight:900;
+      letter-spacing:.08em;
+      color:#b32020;
+      text-shadow:0 1px 0 rgba(0,0,0,.1);
+    }
+
+    .diary-note{
+      font-size:15px;
+      line-height:1.9;
+      color:#573f2f;
+    }
+
+    .drawer-inside{
+      width:min(640px,100%);
+      padding:0;
+      overflow:hidden;
+      border-radius:22px;
+      background:linear-gradient(180deg, #30251f, #1a1512);
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow:0 28px 60px rgba(0,0,0,.45);
+    }
+
+    .drawer-inside-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:18px 20px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.04);
+    }
+
+    .drawer-inside-title{
+      font-size:22px;
+      font-weight:900;
+    }
+
+    .drawer-inside-body{
+      display:grid;
+      grid-template-columns:220px 1fr;
+      gap:0;
+      min-height:320px;
+    }
+
+    .drawer-left{
+      position:relative;
+      background:linear-gradient(180deg, #6b5445, #412f25);
+      border-right:1px solid rgba(255,255,255,.06);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .drawer-box-inner{
+      width:150px;
+      height:180px;
+      border-radius:12px;
+      background:rgba(0,0,0,.22);
+      box-shadow:inset 0 12px 24px rgba(0,0,0,.25);
+      position:relative;
+    }
+
+    .clipper-big{
+      position:absolute;
+      left:44px;
+      top:74px;
+      width:62px;
+      height:20px;
+      border-radius:14px;
+      background:linear-gradient(180deg, #c1c7d1, #737a86);
+      transform:rotate(-12deg);
+      box-shadow:0 10px 16px rgba(0,0,0,.3);
+    }
+
+    .clipper-big::before{
+      content:"";
+      position:absolute;
+      left:10px;
+      top:-7px;
+      width:42px;
+      height:8px;
+      border-radius:999px;
+      background:linear-gradient(180deg, #d9dde5, #8b929d);
+    }
+
+    .drawer-right{
+      padding:24px 22px;
+      background:linear-gradient(180deg, #221c19, #171311);
+    }
+
+    .drawer-right h3{
+      margin:0 0 14px;
+      font-size:22px;
+      color:#f2e7dd;
+    }
+
+    .drawer-right p{
+      margin:0 0 14px;
+      line-height:1.85;
+      color:#ddd2c8;
+      font-size:15px;
+    }
+
+
+    .tv-screen::after{
+      content:"";
+      position:absolute; inset:-20%;
+      background:
+        repeating-linear-gradient(0deg,
+          rgba(255,255,255,.05) 0px,
+          rgba(255,255,255,.05) 1px,
+          transparent 2px,
+          transparent 5px
+        );
+      mix-blend-mode:screen;
+      opacity:0;
+      transform:translateX(-6%);
+      animation:tvRoll 7s linear infinite;
+      pointer-events:none;
+    }
+
+    .tv.active .tv-screen::after{ opacity:.24; }
+
+    @keyframes tvRoll{
+      0%{ transform:translate(-4%, -10%); }
+      50%{ transform:translate(2%, 6%); }
+      100%{ transform:translate(-4%, -10%); }
+    }
+
+    .tv-noise{
+      position:absolute; inset:-25%;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.85) .7px, transparent 1.2px),
+        radial-gradient(circle, rgba(255,255,255,.35) .5px, transparent 1px),
+        linear-gradient(180deg, transparent 0%, rgba(255,255,255,.08) 48%, transparent 100%);
+      background-size: 4px 4px, 6px 6px, 100% 100%;
+      background-position: 0 0, 2px 1px, 0 0;
+      opacity:0;
+      transform:scale(1.08);
+      filter:contrast(170%) brightness(92%);
+      transition:opacity .18s ease;
+      animation:tvStatic .22s steps(2) infinite;
+    }
+
+    @keyframes tvStatic{
+      0%{ transform:translate(0,0) scale(1.08); }
+      25%{ transform:translate(-1.5%,1%) scale(1.1); }
+      50%{ transform:translate(1.2%,-1%) scale(1.06); }
+      75%{ transform:translate(-1%,.8%) scale(1.09); }
+      100%{ transform:translate(0,0) scale(1.08); }
+    }
+
+    .tv-signal{
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:108%;
+      height:4px;
+      transform:translate(-50%,-50%);
+      background:linear-gradient(90deg,
+        transparent 0%,
+        rgba(255,255,255,.0) 10%,
+        rgba(255,255,255,.82) 48%,
+        rgba(255,255,255,.0) 90%,
+        transparent 100%);
+      filter:blur(1px);
+      opacity:0;
+      animation:signalScan 2.3s linear infinite;
+      pointer-events:none;
+    }
+
+    .tv.active .tv-signal{ opacity:.85; }
+
+    @keyframes signalScan{
+      0%{ top:14%; opacity:.15; }
+      15%{ opacity:.5; }
+      50%{ top:52%; opacity:.85; }
+      100%{ top:88%; opacity:.1; }
+    }
+
+    .tv-label{
+      position:absolute;
+      left:10px;
+      bottom:8px;
+      padding:4px 8px;
+      border-radius:999px;
+      font-size:10px;
+      font-weight:800;
+      letter-spacing:.12em;
+      color:rgba(255,255,255,.78);
+      background:rgba(0,0,0,.34);
+      border:1px solid rgba(255,255,255,.12);
+      opacity:0;
+      pointer-events:none;
+    }
+
+    .tv.active .tv-label{ opacity:1; }
+
+    .drawer{
+      transition:transform .34s ease, box-shadow .34s ease, background .34s ease;
+      transform-origin:center center;
+    }
+
+    .drawer.opening{
+      transform:translateX(20px);
+      box-shadow:0 10px 18px rgba(0,0,0,.24);
+      background:rgba(255,255,255,.08);
+    }
+
+    .drawer.opening .handle{
+      transform:translateY(-50%) translateX(4px);
+    }
+
+    .handle{
+      transition:transform .34s ease;
+    }
+
+    .diary-book{
+      perspective:1600px;
+    }
+
+    .diary-shell{
+      position:relative;
+      min-height:540px;
+      background:linear-gradient(180deg, #e5d6b8, #d7c39e);
+      overflow:hidden;
+    }
+
+    .diary-spread{
+      position:absolute;
+      inset:0;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      transition:opacity .22s ease;
+    }
+
+    .diary-spread.hidden{
+      opacity:0;
+      pointer-events:none;
+    }
+
+    .page-flip-layer{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      opacity:0;
+      z-index:6;
+    }
+
+    .page-flip-layer.play{
+      opacity:1;
+    }
+
+    .flip-page{
+      position:absolute;
+      top:0;
+      right:0;
+      width:50%;
+      height:100%;
+      transform-origin:left center;
+      transform:perspective(1600px) rotateY(0deg);
+      background:linear-gradient(180deg, #eadbbf, #d9c6a3);
+      box-shadow:
+        -8px 0 18px rgba(0,0,0,.18),
+        inset 1px 0 0 rgba(255,255,255,.55);
+      overflow:hidden;
+    }
+
+    .page-flip-layer.play .flip-page{
+      animation:pageFlip .8s cubic-bezier(.23,.78,.21,.99) forwards;
+    }
+
+    @keyframes pageFlip{
+      0%{ transform:perspective(1600px) rotateY(0deg); }
+      100%{ transform:perspective(1600px) rotateY(-178deg); }
+    }
+
+    .flip-page::before{
+      content:"";
+      position:absolute; inset:0;
+      background:linear-gradient(90deg,
+        rgba(0,0,0,.24) 0%,
+        rgba(0,0,0,.06) 18%,
+        rgba(255,255,255,.12) 44%,
+        rgba(0,0,0,.14) 100%);
+      opacity:.55;
+    }
+
+    .flip-shadow{
+      position:absolute;
+      top:0;
+      right:50%;
+      width:26%;
+      height:100%;
+      background:linear-gradient(90deg, rgba(0,0,0,.25), transparent 75%);
+      opacity:0;
+    }
+
+    .page-flip-layer.play .flip-shadow{
+      animation:pageShadow .8s ease forwards;
+    }
+
+    @keyframes pageShadow{
+      0%{ opacity:0; transform:translateX(40px); }
+      35%{ opacity:.42; }
+      100%{ opacity:0; transform:translateX(-20px); }
+    }
+
+    .diary-toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      padding:14px 18px 18px;
+      border-top:1px solid rgba(255,255,255,.08);
+      background:rgba(0,0,0,.14);
+    }
+
+    .diary-tool-group{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .tool-chip{
+      padding:10px 14px;
+      border:none;
+      border-radius:12px;
+      background:rgba(255,255,255,.12);
+      color:#fff;
+      font-weight:700;
+      cursor:pointer;
+    }
+
+    .tool-chip.active{
+      background:linear-gradient(180deg, #f1d5a7, #c89c66);
+      color:#1a1510;
+    }
+
+    .tool-chip.ghost{
+      background:rgba(255,255,255,.08);
+    }
+
+    .diary-page.blank{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.03)),
+        repeating-linear-gradient(
+          180deg,
+          transparent 0px,
+          transparent 33px,
+          rgba(86,61,46,.12) 34px,
+          transparent 35px
+        );
+    }
+
+    .page-index{
+      position:absolute;
+      bottom:16px;
+      right:18px;
+      font-size:12px;
+      color:rgba(60,44,30,.55);
+      font-weight:700;
+      letter-spacing:.08em;
+    }
+
+    .diary-writing-layer{
+      position:absolute;
+      inset:22px 20px 38px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .page-title-input{
+      width:100%;
+      border:none;
+      outline:none;
+      background:transparent;
+      font-size:24px;
+      font-weight:800;
+      color:#4e392c;
+      padding:0;
+    }
+
+    .page-title-input::placeholder,
+    .page-text-input::placeholder{
+      color:rgba(78,57,44,.42);
+    }
+
+    .page-text-input{
+      flex:1;
+      width:100%;
+      resize:none;
+      border:none;
+      outline:none;
+      background:transparent;
+      font-size:17px;
+      line-height:1.9;
+      color:#4b382b;
+      font-family:"Pretendard","Noto Sans KR",system-ui,sans-serif;
+    }
+
+    .diary-canvas{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      cursor:crosshair;
+      touch-action:none;
+      background:transparent;
+      z-index:4;
+    }
+
+    .draw-hint{
+      position:absolute;
+      left:22px;
+      bottom:12px;
+      font-size:12px;
+      color:rgba(78,57,44,.58);
+      z-index:5;
+    }
+
+    .static-overlay{
+      position:absolute; inset:0;
+      background:
+        repeating-linear-gradient(
+          180deg,
+          rgba(255,255,255,.02) 0px,
+          rgba(255,255,255,.02) 1px,
+          transparent 2px,
+          transparent 4px
+        );
+      pointer-events:none;
+      mix-blend-mode:soft-light;
+      opacity:.25;
+      z-index:26;
+    }
+
+    .vignette{
+      position:absolute; inset:0;
+      background:radial-gradient(circle at center, transparent 48%, rgba(0,0,0,.34) 100%);
+      z-index:25; pointer-events:none;
+    }
+
+    .shake-once{ animation:shakeOnce .45s ease; }
+
+    @keyframes shakeOnce{
+      0%{transform:translate(0,0)}
+      20%{transform:translate(4px,0)}
+      40%{transform:translate(-5px,1px)}
+      60%{transform:translate(4px,-1px)}
+      80%{transform:translate(-3px,0)}
+      100%{transform:translate(0,0)}
+    }
+
+    .flicker{ animation:flicker .45s ease; }
+
+    @keyframes flicker{
+      0%{filter:brightness(1)}
+      20%{filter:brightness(.74)}
+      40%{filter:brightness(.96)}
+      60%{filter:brightness(.6)}
+      100%{filter:brightness(.84)}
+    }
+
+    @media (max-width:1200px){
+      #scene.show{ grid-template-columns:1fr; }
+
+      .panel{
+        position:absolute;
+        right:12px;
+        top:12px;
+        width:min(320px, calc(100% - 24px));
+        max-height:calc(100vh - 24px);
+        height:auto;
+        border-radius:18px;
+        border:1px solid rgba(255,255,255,.08);
+        z-index:35;
+      }
+
+      #messageBox{
+        width:min(760px, calc(100% - 24px));
+        bottom:12px;
+      }
+
+      #infoDrawer{
+        width:min(420px, 100%);
+      }
+    }
+
+    @media (max-width:768px){
+      .intro-title{ font-size:28px; }
+      .intro-text{ font-size:14px; }
+
+      .diary-pages{
+        grid-template-columns:1fr;
+      }
+
+      .diary-page.left{
+        border-right:none;
+        border-bottom:1px solid rgba(70,40,25,.18);
+      }
+
+      .drawer-inside-body{
+        grid-template-columns:1fr;
+      }
+
+      .drawer-left{
+        min-height:180px;
+        border-right:none;
+        border-bottom:1px solid rgba(255,255,255,.06);
+      }
+
+      #messageText{
+        font-size:14px;
+        line-height:1.65;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div id="intro">
+      <div class="intro-box">
+        <div class="eyebrow">INTERACTIVE FOLK HORROR ROOM</div>
+        <div class="intro-title">방 안의 미신</div>
+        <div class="intro-text">
+          선풍기를 틀고 자면 안 된다.<br>
+          문지방은 오래 밟지 않는다.<br>
+          밤의 휘파람, 붉은 이름, 네 번째 시각.<br><br>
+          이 방 안에서 익숙한 가구를 하나씩 눌러보세요.<br>
+          오래 들여다볼수록, 설명할 수 없는 것들이 남습니다.
+        </div>
+        <button class="start-btn btn" id="startBtn">방 들어가기</button>
+      </div>
+    </div>
+
+    <div id="scene">
+      <section class="room" id="room">
+        <div class="room-stage" id="roomStage">
+          <div class="ceiling-light"></div>
+
+          <div class="window" id="window">
+            <div class="rain-streak"></div>
+          </div>
+          <div class="window-shadow"></div>
+
+          <div class="bookshelf" id="bookshelf">
+            <div class="shelf-body"></div>
+            <div class="shelf-line s1"></div>
+            <div class="shelf-line s2"></div>
+            <div class="shelf-line s3"></div>
+
+            <div class="book b-a"></div>
+            <div class="book b-b"></div>
+            <div class="book b-c"></div>
+            <div class="book b-d"></div>
+            <div class="book b-e"></div>
+            <div class="book b-f"></div>
+            <div class="book b-g"></div>
+            <div class="book b-h"></div>
+            <div class="book b-i"></div>
+            <div class="book b-j"></div>
+            <div class="book b-k"></div>
+            <div class="book b-l"></div>
+            <div class="book b-m"></div>
+            <div class="book b-n"></div>
+            <div class="book b-o"></div>
+
+            <div class="diary"></div>
+          </div>
+
+          <div class="bed">
+            <div class="bed-frame"></div>
+            <div class="mattress"></div>
+            <div class="blanket"></div>
+            <div class="pillow"></div>
+            <div class="underbed" id="underbed">
+              <div class="underbed-glow"></div>
+              <div class="underbed-eye left" id="eyeLeft"></div>
+              <div class="underbed-eye right" id="eyeRight"></div>
+            </div>
+          </div>
+
+          <div class="ghost-hand" id="ghostHand"></div>
+
+          <div class="chair-zone" id="chairZone">
+            <div class="chair" id="chair">
+              <div class="chair-back"></div>
+              <div class="chair-seat"></div>
+              <div class="leg l1"></div>
+              <div class="leg l2"></div>
+              <div class="rocker r1"></div>
+              <div class="rocker r2"></div>
+            </div>
+            <div class="doll" id="doll">
+              <div class="d-head">
+                <div class="d-hair"></div>
+                <div class="d-eye left"></div>
+                <div class="d-eye right"></div>
+              </div>
+              <div class="d-body"></div>
+              <div class="d-leg dl1"></div>
+              <div class="d-leg dl2"></div>
+            </div>
+          </div>
+
+          <div class="clock" id="clock">
+            <div class="hand hour"></div>
+            <div class="hand minute"></div>
+            <div class="mark4">IV</div>
+          </div>
+
+          <div class="tv" id="tv">
+            <div class="tv-frame"></div>
+            <div class="tv-screen">
+              <div class="tv-noise" id="tvNoise"></div>
+              <div class="tv-signal"></div>
+              <div class="tv-label">NO SIGNAL</div>
+            </div>
+            <div class="tv-stand"></div>
+          </div>
+
+          <div class="dresser" id="dresser">
+            <div class="clipper"></div>
+            <div class="dresser-body"></div>
+            <div class="drawer dr1" id="drawer1"><div class="handle"></div></div>
+            <div class="drawer dr2" id="drawer2"><div class="handle"></div></div>
+            <div class="drawer dr3" id="drawer3"><div class="handle"></div></div>
+          </div>
+
+          <div class="fan" id="fan">
+            <div class="fan-shadow"></div>
+            <div class="fan-head">
+              <div class="blade b1"></div>
+              <div class="blade b2"></div>
+              <div class="blade b3"></div>
+              <div class="fan-center"></div>
+            </div>
+            <div class="fan-neck"></div>
+            <div class="fan-stand"></div>
+            <div class="fan-base"></div>
+          </div>
+
+          <div class="door-area">
+            <div class="door" id="door">
+              <div class="door-gap"></div>
+            </div>
+            <div class="door-shadow-figure" id="doorShadowFigure"></div>
+            <div class="threshold" id="threshold">
+              <div class="threshold-mark"></div>
+            </div>
+          </div>
+
+          <div class="rug"></div>
+          <div class="fog"></div>
+          <div class="static-overlay"></div>
+          <div class="vignette"></div>
+          <div class="floor"></div>
+        </div>
+
+        <div id="messageBox">
+          <div id="messageTitle">MIDNIGHT ROOM LOG</div>
+          <div id="messageText">방에 들어왔습니다. 사물들은 가만히 있지만, 밤에는 가만히 있는 것이 꼭 안전하다는 뜻은 아닙니다.</div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-title">체험 패널</div>
+        <div class="panel-sub">
+          방 안의 오브젝트를 눌러보세요.<br>
+          공포 수치가 오를수록 같은 사물도 다르게 반응합니다.
+        </div>
+
+        <div class="card">
+          <div class="status-row"><span>조명</span><strong id="lightStatus">켜짐</strong></div>
+          <div class="status-row"><span>선풍기</span><strong id="fanStatus">꺼짐</strong></div>
+          <div class="status-row"><span>문</span><strong id="doorStatus">닫힘</strong></div>
+          <div class="status-row"><span>TV</span><strong id="tvStatus">꺼짐</strong></div>
+          <div class="status-row"><span>공포 수치</span><strong id="fearValue">0 / 12</strong></div>
+          <div class="fear-bar"><div class="fear-fill" id="fearFill"></div></div>
+        </div>
+
+        <button class="action-btn btn" id="lightBtn">전등 켜기 / 끄기</button>
+        <button class="action-btn btn" id="fanBtn">선풍기 켜기 / 끄기</button>
+        <button class="action-btn btn" id="underbedBtn">침대 밑 보기</button>
+        <button class="action-btn btn" id="bookshelfBtn">책장 살펴보기</button>
+        <button class="action-btn btn" id="chairBtn">의자와 인형 보기</button>
+        <button class="action-btn btn" id="clockBtn">벽시계 확인하기</button>
+        <button class="action-btn btn" id="tvBtn">TV 확인하기</button>
+        <button class="action-btn btn" id="dresserBtn">서랍장 열기</button>
+        <button class="action-btn btn" id="windowBtn">창가 듣기</button>
+        <button class="action-btn btn" id="doorBtn">문 열기 / 닫기</button>
+        <button class="action-btn btn" id="drawerOpenBtn">방 안의 기록 보기</button>
+        <button class="action-btn btn" id="resetBtn">처음 상태로 되돌리기</button>
+        <button class="danger-btn btn" id="exitBtn">나가기</button>
+
+        <div class="card">
+          <div style="font-size:14px;font-weight:800;margin-bottom:8px;">연출 포인트</div>
+          <div class="note">
+            - 선풍기 그림자 지연<br>
+            - 문지방 반복 상호작용<br>
+            - 침대 밑 시선 / 손<br>
+            - 책장 속 붉은 기록<br>
+            - 흔들의자와 인형의 미세한 불일치<br>
+            - 4시로 멈추는 시계<br>
+            - 서랍 속 손톱깎이<br>
+            - TV 잡음과 밤의 시선
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div id="infoDrawer">
+      <div class="drawer-head">
+        <div class="drawer-title">방 안의 미신 기록</div>
+        <button class="drawer-btn" id="drawerCloseBtn">×</button>
+      </div>
+
+      <div class="myth-card">
+        <h4>선풍기</h4>
+        <p>
+          밀폐된 방에서 선풍기를 틀고 자면 위험하다는 이야기는 오래된 생활 공포담의 형태로 남아 있습니다.
+          실제 여부와 별개로, 밤의 회전 소리와 그림자는 사람을 쉽게 불안하게 만듭니다.
+        </p>
+        <div class="sub">연출: 회전보다 늦는 그림자, 꺼진 뒤에도 남는 움직임</div>
+      </div>
+
+      <div class="myth-card">
+        <h4>문지방</h4>
+        <p>
+          문지방은 안과 밖을 가르는 경계로 여겨졌고, 오래 밟거나 걸터앉는 것을 꺼리는 금기가 있었습니다.
+        </p>
+        <div class="sub">연출: 문틈의 그림자, 열림과 닫힘의 불일치</div>
+      </div>
+
+      <div class="myth-card">
+        <h4>붉은 이름과 책장</h4>
+        <p>
+          붉은 글씨는 살아 있는 존재의 이름을 적기에 꺼려진다는 분위기를 자주 불러옵니다.
+          이 방에서는 일기장이 그 금기를 시각적으로 드러냅니다.
+        </p>
+        <div class="sub">연출: 빨간 글씨, 펼쳐지는 기록</div>
+      </div>
+
+      <div class="myth-card">
+        <h4>밤의 손톱</h4>
+        <p>
+          밤에 손톱을 깎지 말라는 말은 생활 규범과 공포가 섞여 전해진 대표적 금기입니다.
+        </p>
+        <div class="sub">연출: 서랍 안의 손톱깎이, 방금 쓰고 간 듯한 배치</div>
+      </div>
+
+      <div class="myth-card">
+        <h4>숫자 4와 시계</h4>
+        <p>
+          숫자 4는 불길함과 연결되어 해석되는 경우가 많아, 멈춘 시계와 결합되면 강한 불안을 만듭니다.
+        </p>
+        <div class="sub">연출: 4시 정각으로 멈추는 벽시계</div>
+      </div>
+
+      <div class="myth-card">
+        <h4>TV</h4>
+        <p>
+          꺼진 화면은 거울처럼 방 안을 비추고, 켜진 화면은 사람보다 늦게 반응하는 상을 보여줄 때가 있습니다.
+          그래서 오래된 공포 연출에서 TV는 늘 안쪽과 바깥쪽의 경계를 흐리는 장치로 쓰입니다.
+        </p>
+        <div class="sub">연출: 화면 잡음, 꺼져 있는데 먼저 켜지는 느낌</div>
+      </div>
+    </div>
+
+    
+    <div id="diaryModal">
+      <div class="diary-book">
+        <div class="diary-top">
+          <div class="diary-title">붉은 기록</div>
+          <button class="diary-close" id="diaryCloseBtn">×</button>
+        </div>
+
+        <div class="diary-shell">
+          <div class="diary-spread" id="diaryIntroSpread">
+            <div class="diary-page left">
+              <div class="diary-hand">
+                오늘도 방은 조용했다.<br>
+                그런데 조용한 것과 비어 있는 것은 다르다.<br>
+                이름을 적지 말아야 할 곳이 있다.<br>
+                밤에는 더 그렇다.
+              </div>
+            </div>
+            <div class="diary-page">
+              <span class="diary-red">웹디자인</span>
+              <div class="diary-note">
+                빨간색으로 적힌 글자는 너무 또렷해서<br>
+                오히려 지워지지 않은 흔적처럼 보인다.<br><br>
+                덮고 나가도, 본 사람은 이미 기록된 것 같다.
+              </div>
+            </div>
+          </div>
+
+          <div class="page-flip-layer" id="pageFlipLayer">
+            <div class="flip-page"></div>
+            <div class="flip-shadow"></div>
+          </div>
+
+          <div class="diary-spread hidden" id="diaryDrawSpread">
+            <div class="diary-page left blank" data-page="left">
+              <div class="diary-writing-layer">
+                <input class="page-title-input" id="leftPageTitle" type="text" placeholder="제목을 적어보세요" />
+                <textarea class="page-text-input" id="leftPageText" placeholder="여기에 자유롭게 글을 쓸 수 있어요."></textarea>
+              </div>
+              <canvas class="diary-canvas" id="leftPageCanvas"></canvas>
+              <div class="draw-hint">그리기 모드에서 페이지 위에 바로 그릴 수 있어요.</div>
+              <div class="page-index" id="leftPageIndex">PAGE 01</div>
+            </div>
+
+            <div class="diary-page blank" data-page="right">
+              <div class="diary-writing-layer">
+                <input class="page-title-input" id="rightPageTitle" type="text" placeholder="다음 장 제목" />
+                <textarea class="page-text-input" id="rightPageText" placeholder="다음 장도 백지로 이어집니다."></textarea>
+              </div>
+              <canvas class="diary-canvas" id="rightPageCanvas"></canvas>
+              <div class="draw-hint">글과 그림을 함께 남길 수 있어요.</div>
+              <div class="page-index" id="rightPageIndex">PAGE 02</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="diary-toolbar">
+          <div class="diary-tool-group">
+            <button class="tool-chip active" id="drawModeBtn">그리기</button>
+            <button class="tool-chip ghost" id="eraseModeBtn">지우기</button>
+            <button class="tool-chip ghost" id="clearPageBtn">현재 페이지 비우기</button>
+          </div>
+          <div class="diary-tool-group">
+            <button class="tool-chip ghost" id="nextDiaryPageBtn">다음 장 넘기기</button>
+            <button class="tool-chip ghost" id="prevDiaryPageBtn">이전 장 번호</button>
+            <button class="tool-chip ghost" id="diaryBackBtn">덮기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<div id="dresserModal">
+      <div class="drawer-inside">
+        <div class="drawer-inside-top">
+          <div class="drawer-inside-title">열린 서랍</div>
+          <button class="diary-close" id="dresserCloseBtn">×</button>
+        </div>
+        <div class="drawer-inside-body">
+          <div class="drawer-left">
+            <div class="drawer-box-inner">
+              <div class="clipper-big"></div>
+            </div>
+          </div>
+          <div class="drawer-right">
+            <h3>손톱깎이</h3>
+            <p>
+              밤에 손톱을 깎으면 좋지 않다는 말은 오래전부터 전해졌습니다.
+              어두운 시간에 몸에서 떨어져 나온 흔적을 남기는 일 자체가 꺼림칙하게 여겨졌기 때문입니다.
+            </p>
+            <p>
+              이 서랍 안의 손톱깎이는 너무 가지런히 놓여 있어,
+              오히려 방금 누가 사용하고 사라진 뒤의 정적처럼 보입니다.
+            </p>
+            <button class="modal-btn secondary" id="dresserBackBtn">서랍 닫기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="endingModal">
+      <div class="modal-box">
+        <div class="modal-title">문을 열었는데…</div>
+        <div class="modal-text">
+          복도로 나간 줄 알았는데,<br>
+          다시 같은 방의 공기가 먼저 닿았습니다.<br><br>
+          문지방을 넘은 건 당신뿐이 아니었을지도 모릅니다.
+        </div>
+        <button class="modal-btn" id="restartBtn">다시 방 보기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const intro = document.getElementById("intro");
+    const scene = document.getElementById("scene");
+    const room = document.getElementById("room");
+
+    const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
+
+    const messageText = document.getElementById("messageText");
+
+    const lightBtn = document.getElementById("lightBtn");
+    const fanBtn = document.getElementById("fanBtn");
+    const underbedBtn = document.getElementById("underbedBtn");
+    const bookshelfBtn = document.getElementById("bookshelfBtn");
+    const chairBtn = document.getElementById("chairBtn");
+    const clockBtn = document.getElementById("clockBtn");
+    const tvBtn = document.getElementById("tvBtn");
+    const dresserBtn = document.getElementById("dresserBtn");
+    const windowBtn = document.getElementById("windowBtn");
+    const doorBtn = document.getElementById("doorBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const exitBtn = document.getElementById("exitBtn");
+
+    const drawerOpenBtn = document.getElementById("drawerOpenBtn");
+    const drawerCloseBtn = document.getElementById("drawerCloseBtn");
+    const infoDrawer = document.getElementById("infoDrawer");
+
+    const diaryModal = document.getElementById("diaryModal");
+    const diaryCloseBtn = document.getElementById("diaryCloseBtn");
+    const diaryBackBtn = document.getElementById("diaryBackBtn");
+    const drawModeBtn = document.getElementById("drawModeBtn");
+    const eraseModeBtn = document.getElementById("eraseModeBtn");
+    const clearPageBtn = document.getElementById("clearPageBtn");
+    const nextDiaryPageBtn = document.getElementById("nextDiaryPageBtn");
+    const prevDiaryPageBtn = document.getElementById("prevDiaryPageBtn");
+    const diaryIntroSpread = document.getElementById("diaryIntroSpread");
+    const diaryDrawSpread = document.getElementById("diaryDrawSpread");
+    const pageFlipLayer = document.getElementById("pageFlipLayer");
+    const leftPageTitle = document.getElementById("leftPageTitle");
+    const rightPageTitle = document.getElementById("rightPageTitle");
+    const leftPageText = document.getElementById("leftPageText");
+    const rightPageText = document.getElementById("rightPageText");
+    const leftPageCanvas = document.getElementById("leftPageCanvas");
+    const rightPageCanvas = document.getElementById("rightPageCanvas");
+    const leftPageIndex = document.getElementById("leftPageIndex");
+    const rightPageIndex = document.getElementById("rightPageIndex");
+
+    const dresserModal = document.getElementById("dresserModal");
+    const dresserCloseBtn = document.getElementById("dresserCloseBtn");
+    const dresserBackBtn = document.getElementById("dresserBackBtn");
+
+    const fearValue = document.getElementById("fearValue");
+    const fearFill = document.getElementById("fearFill");
+    const lightStatus = document.getElementById("lightStatus");
+    const fanStatus = document.getElementById("fanStatus");
+    const doorStatus = document.getElementById("doorStatus");
+    const tvStatus = document.getElementById("tvStatus");
+
+    const fan = document.getElementById("fan");
+    const underbed = document.getElementById("underbed");
+    const eyeLeft = document.getElementById("eyeLeft");
+    const eyeRight = document.getElementById("eyeRight");
+    const ghostHand = document.getElementById("ghostHand");
+
+    const bookshelf = document.getElementById("bookshelf");
+    const chairZone = document.getElementById("chairZone");
+    const chair = document.getElementById("chair");
+    const doll = document.getElementById("doll");
+    const clock = document.getElementById("clock");
+    const tv = document.getElementById("tv");
+    const dresser = document.getElementById("dresser");
+    const drawer1 = document.getElementById("drawer1");
+    const drawer2 = document.getElementById("drawer2");
+    const drawer3 = document.getElementById("drawer3");
+    const windowEl = document.getElementById("window");
+
+    const door = document.getElementById("door");
+    const threshold = document.getElementById("threshold");
+    const doorShadowFigure = document.getElementById("doorShadowFigure");
+
+    const endingModal = document.getElementById("endingModal");
+
+    let fearLevel = 0;
+    let lightOn = true;
+    let fanOn = false;
+    let doorOpen = false;
+    let tvOn = false;
+    let endingTriggered = false;
+
+    let fanCount = 0;
+    let thresholdCount = 0;
+    let underbedCount = 0;
+    let shelfCount = 0;
+    let chairCount = 0;
+    let clockCount = 0;
+    let dresserCount = 0;
+    let windowCount = 0;
+    let tvCount = 0;
+
+    let diaryPageBase = 1;
+    let diaryMode = "draw";
+    let diaryIntroSeen = false;
+    let activeDiaryPage = "left";
+    const diaryCanvasState = {
+      left: { canvas: leftPageCanvas, strokes: [] },
+      right: { canvas: rightPageCanvas, strokes: [] }
+    };
+    let currentStroke = null;
+
+
+    function resizeDiaryCanvas(canvas){
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      canvas.width = Math.floor(rect.width * ratio);
+      canvas.height = Math.floor(rect.height * ratio);
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    function drawStroke(ctx, stroke){
+      if (!stroke.points.length) return;
+      ctx.save();
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.lineWidth = stroke.mode === "erase" ? 22 : 3.2;
+      ctx.globalCompositeOperation = stroke.mode === "erase" ? "destination-out" : "source-over";
+      ctx.strokeStyle = "rgba(117, 34, 34, 0.95)";
+      ctx.beginPath();
+      ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+      for(let i = 1; i < stroke.points.length; i++){
+        ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function renderDiaryCanvas(pageKey){
+      const state = diaryCanvasState[pageKey];
+      const canvas = state.canvas;
+      resizeDiaryCanvas(canvas);
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      state.strokes.forEach(stroke => drawStroke(ctx, stroke));
+    }
+
+    function renderAllDiaryCanvases(){
+      renderDiaryCanvas("left");
+      renderDiaryCanvas("right");
+    }
+
+    function getCanvasPoint(canvas, event){
+      const rect = canvas.getBoundingClientRect();
+      const clientX = event.clientX ?? (event.touches && event.touches[0]?.clientX) ?? 0;
+      const clientY = event.clientY ?? (event.touches && event.touches[0]?.clientY) ?? 0;
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function setActiveDiaryPage(pageKey){
+      activeDiaryPage = pageKey;
+      clearPageBtn.textContent = `현재 페이지 비우기 (${pageKey === "left" ? "왼쪽" : "오른쪽"})`;
+    }
+
+    function setDiaryMode(mode){
+      diaryMode = mode;
+      drawModeBtn.classList.toggle("active", mode === "draw");
+      eraseModeBtn.classList.toggle("active", mode === "erase");
+      drawModeBtn.classList.toggle("ghost", mode !== "draw");
+      eraseModeBtn.classList.toggle("ghost", mode !== "erase");
+    }
+
+    function setupDiaryCanvas(pageKey){
+      const canvas = diaryCanvasState[pageKey].canvas;
+      const start = (event) => {
+        if (diaryDrawSpread.classList.contains("hidden")) return;
+        event.preventDefault();
+        setActiveDiaryPage(pageKey);
+        const point = getCanvasPoint(canvas, event);
+        currentStroke = { mode: diaryMode, points: [point], pageKey };
+        diaryCanvasState[pageKey].strokes.push(currentStroke);
+        renderDiaryCanvas(pageKey);
+      };
+
+      const move = (event) => {
+        if (!currentStroke || currentStroke.pageKey !== pageKey) return;
+        event.preventDefault();
+        currentStroke.points.push(getCanvasPoint(canvas, event));
+        renderDiaryCanvas(pageKey);
+      };
+
+      const end = () => {
+        currentStroke = null;
+      };
+
+      canvas.addEventListener("pointerdown", start);
+      canvas.addEventListener("pointermove", move);
+      canvas.addEventListener("pointerup", end);
+      canvas.addEventListener("pointerleave", end);
+      canvas.addEventListener("pointercancel", end);
+      canvas.addEventListener("mouseenter", () => setActiveDiaryPage(pageKey));
+    }
+
+    function updateDiaryPageLabels(){
+      leftPageIndex.textContent = `PAGE ${String(diaryPageBase).padStart(2, "0")}`;
+      rightPageIndex.textContent = `PAGE ${String(diaryPageBase + 1).padStart(2, "0")}`;
+    }
+
+    function clearCurrentDiaryPage(){
+      diaryCanvasState[activeDiaryPage].strokes = [];
+      if (activeDiaryPage === "left"){
+        leftPageTitle.value = "";
+        leftPageText.value = "";
+      } else {
+        rightPageTitle.value = "";
+        rightPageText.value = "";
+      }
+      renderDiaryCanvas(activeDiaryPage);
+      setMessage(`${activeDiaryPage === "left" ? "왼쪽" : "오른쪽"} 페이지를 비웠습니다. 다시 백지처럼 쓸 수 있습니다.`);
+    }
+
+    function animateDiaryFlip(forward = true){
+      pageFlipLayer.classList.remove("play");
+      void pageFlipLayer.offsetWidth;
+      pageFlipLayer.classList.add("play");
+      setTimeout(() => pageFlipLayer.classList.remove("play"), 820);
+
+      if (forward){
+        diaryPageBase += 2;
+        diaryCanvasState.left.strokes = [];
+        diaryCanvasState.right.strokes = [];
+        leftPageTitle.value = "";
+        rightPageTitle.value = "";
+        leftPageText.value = "";
+        rightPageText.value = "";
+        setActiveDiaryPage("left");
+        updateDiaryPageLabels();
+        renderAllDiaryCanvases();
+        setMessage(`일기장을 넘겼습니다. PAGE ${String(diaryPageBase).padStart(2, "0")}부터 다시 빈 장이 이어집니다.`);
+      } else {
+        diaryPageBase = Math.max(1, diaryPageBase - 2);
+        diaryCanvasState.left.strokes = [];
+        diaryCanvasState.right.strokes = [];
+        leftPageTitle.value = "";
+        rightPageTitle.value = "";
+        leftPageText.value = "";
+        rightPageText.value = "";
+        setActiveDiaryPage("left");
+        updateDiaryPageLabels();
+        renderAllDiaryCanvases();
+        setMessage(`이전 번호의 빈 장으로 돌아왔습니다. PAGE ${String(diaryPageBase).padStart(2, "0")}입니다.`);
+      }
+    }
+
+    function playDrawerAnimation(){
+      [drawer1, drawer2, drawer3].forEach((drawerEl, index) => {
+        drawerEl.classList.remove("opening");
+        setTimeout(() => drawerEl.classList.add("opening"), index * 90);
+        setTimeout(() => drawerEl.classList.remove("opening"), 420 + index * 90);
+      });
+    }
+
+    function setMessage(text){
+      messageText.textContent = text;
+    }
+
+    function updateStatus(){
+      fearValue.textContent = `${fearLevel} / 12`;
+      fearFill.style.width = `${Math.min((fearLevel / 12) * 100, 100)}%`;
+      lightStatus.textContent = lightOn ? "켜짐" : "꺼짐";
+      fanStatus.textContent = fanOn ? "켜짐" : "꺼짐";
+      doorStatus.textContent = doorOpen ? "열림" : "닫힘";
+      tvStatus.textContent = tvOn ? "켜짐" : "꺼짐";
+
+      if (fearLevel >= 12) {
+        exitBtn.classList.add("show");
+      } else {
+        exitBtn.classList.remove("show");
+      }
+    }
+
+    function pulseRoom(){
+      room.classList.add("shake-once");
+      setTimeout(() => room.classList.remove("shake-once"), 450);
+    }
+
+    function flickerRoom(){
+      room.classList.add("flicker");
+      setTimeout(() => room.classList.remove("flicker"), 450);
+    }
+
+    function increaseFear(amount = 1){
+      fearLevel = Math.min(fearLevel + amount, 12);
+      updateStatus();
+      applyFearStage();
+    }
+
+    function applyFearStage(){
+      if (fearLevel >= 2) flickerRoom();
+      if (fearLevel >= 5) fan.classList.add("weird");
+      if (fearLevel >= 6 && !lightOn){
+        eyeLeft.style.opacity = "1";
+        eyeRight.style.opacity = "1";
+      }
+      if (fearLevel >= 8){
+        doorShadowFigure.style.opacity = "0.7";
+      }
+      if (fearLevel >= 10){
+        doll.classList.add("glow");
+      }
+    }
+
+    function toggleLight(){
+      lightOn = !lightOn;
+      room.classList.toggle("dark", !lightOn);
+      updateStatus();
+
+      if (!lightOn){
+        setMessage("전등을 껐습니다. 가구의 윤곽은 남아 있는데, 거리감만 먼저 사라집니다.");
+        if (fearLevel >= 5){
+          eyeLeft.style.opacity = "1";
+          eyeRight.style.opacity = "1";
+        }
+      } else {
+        setMessage("전등을 켰습니다. 분명 밝아졌는데도, 방금 전까지 보던 어둠이 완전히 물러난 것 같지는 않습니다.");
+        eyeLeft.style.opacity = fearLevel >= 7 ? "1" : "0";
+        eyeRight.style.opacity = fearLevel >= 7 ? "1" : "0";
+      }
+
+      if (fearLevel >= 3) increaseFear(1);
+    }
+
+    function toggleFan(){
+      fanOn = !fanOn;
+      fan.classList.toggle("on", fanOn);
+      updateStatus();
+
+      if (fanOn){
+        fanCount++;
+        if (fanCount === 1){
+          setMessage("선풍기를 켰습니다. 바람보다 먼저 벽에 맺힌 그림자가 돌아갑니다.");
+        } else if (fanCount === 2){
+          setMessage("회전은 일정한데 그림자 하나가 반 박자 늦습니다.");
+          increaseFear(1);
+        } else if (fanCount === 3){
+          setMessage("벽의 실루엣이 선풍기보다 사람의 어깨에 더 가깝습니다.");
+          increaseFear(2);
+          pulseRoom();
+        } else {
+          setMessage("선풍기를 틀고 자면 안 된다는 말은, 죽음보다 밤의 착시를 더 닮아 있습니다.");
+          increaseFear(1);
+        }
+      } else {
+        setMessage("선풍기를 껐습니다. 멈춘 줄 알았는데 그림자 하나가 아주 늦게 멈춥니다.");
+        if (fanCount >= 2) increaseFear(1);
+      }
+    }
+
+    function inspectUnderbed(){
+      underbedCount++;
+
+      if (underbedCount === 1){
+        setMessage("침대 밑은 어둡기만 합니다. 그런데 시선을 오래 두기엔 지나치게 깊습니다.");
+      } else if (underbedCount === 2){
+        setMessage("안쪽에서 무언가 스친 것 같았습니다. 먼지치고는 너무 느리고, 그림자치고는 너무 구체적입니다.");
+        increaseFear(1);
+      } else if (underbedCount === 3){
+        eyeLeft.style.opacity = "1";
+        eyeRight.style.opacity = "1";
+        setMessage("두 점이 반짝였습니다. 눈처럼 보였다는 사실이 가장 불편합니다.");
+        increaseFear(2);
+      } else if (underbedCount === 4){
+        ghostHand.classList.add("show");
+        setMessage("손이 보였습니다. 침대 밑에서 올라오려다, 들켰다는 듯 멈췄습니다.");
+        increaseFear(3);
+        pulseRoom();
+        setTimeout(() => ghostHand.classList.remove("show"), 900);
+      } else {
+        setMessage("이미 한 번 본 장소는 다시 보지 않는 편이 좋습니다. 방은 확인받는 걸 좋아하게 되니까요.");
+        increaseFear(1);
+      }
+    }
+
+    function openDiary(){
+      shelfCount++;
+      bookshelf.classList.add("weird");
+      setTimeout(() => bookshelf.classList.remove("weird"), 650);
+      diaryModal.classList.add("show");
+      renderAllDiaryCanvases();
+      setDiaryMode(diaryMode);
+      updateDiaryPageLabels();
+
+      if (!diaryIntroSeen){
+        diaryIntroSpread.classList.remove("hidden");
+        diaryDrawSpread.classList.add("hidden");
+      } else {
+        diaryIntroSpread.classList.add("hidden");
+        diaryDrawSpread.classList.remove("hidden");
+      }
+
+      if (shelfCount === 1){
+        setMessage("책장 속 일기장을 펼쳤습니다. 첫 장은 붉은 기록이고, 다음 장부터는 사용자가 직접 쓰고 그릴 수 있습니다.");
+      } else if (shelfCount === 2){
+        setMessage("같은 일기장이지만 이번에는 빈 장으로 넘겨 직접 흔적을 남길 수 있습니다.");
+        increaseFear(1);
+      } else if (shelfCount === 3){
+        setMessage("빨간 글씨를 넘기고 백지에 손을 대는 순간, 이 방은 기록을 더 오래 붙잡는 것 같습니다.");
+        increaseFear(2);
+      } else {
+        setMessage("일기장은 닫아도 기록을 거두지 않습니다. 본 사람과 쓴 사람을 함께 남길 뿐입니다.");
+        increaseFear(1);
+      }
+    }
+
+    function closeDiary(){
+      diaryModal.classList.remove("show");
+      setMessage("일기장을 덮었습니다. 방은 다시 보이지만, 방금 본 글씨는 사라지지 않습니다.");
+    }
+
+    function inspectChairDoll(){
+      chairCount++;
+      chair.classList.add("rock");
+      setTimeout(() => chair.classList.remove("rock"), 2600);
+
+      if (chairCount === 1){
+        setMessage("비어 있는 의자가 혼자 한 번 흔들립니다. 바람 탓이라기엔 시작이 너무 명확했습니다.");
+      } else if (chairCount === 2){
+        doll.style.transform = "translateX(-3px) rotate(-6deg)";
+        setMessage("인형의 고개가 조금 기울어졌습니다. 원래부터 이랬는지 확신이 서지 않습니다.");
+        increaseFear(1);
+      } else if (chairCount === 3){
+        doll.classList.add("glow");
+        doll.style.transform = "translateX(2px) rotate(5deg)";
+        setMessage("인형이 방의 다른 곳이 아니라 정확히 이쪽을 보고 있습니다.");
+        increaseFear(2);
+      } else if (chairCount === 4){
+        setMessage("의자가 흔들릴 때마다 인형은 흔들리지 않습니다. 둘 중 하나는 같은 방식을 따르지 않습니다.");
+        increaseFear(2);
+        pulseRoom();
+      } else {
+        setMessage("비어 있어야 안심되는 자리일수록, 누군가 앉아 있었다는 흔적만으로도 충분히 무섭습니다.");
+        increaseFear(1);
+      }
+    }
+
+    function inspectClock(){
+      clockCount++;
+
+      if (clockCount === 1){
+        setMessage("초침은 없는데도 시간이 조금씩 움직인 것처럼 보입니다.");
+      } else if (clockCount === 2){
+        clock.classList.add("four");
+        setMessage("시계가 멎었습니다. 하필 4시입니다.");
+        increaseFear(1);
+      } else if (clockCount === 3){
+        setMessage("숫자 4가 죽음을 뜻하는 소리와 겹친다는 말을, 이런 방에서는 괜히 더 오래 믿게 됩니다.");
+        increaseFear(2);
+      } else {
+        setMessage("멈춘 시계는 틀린 시간을 두 번 맞힌다고 하지만, 이 방에서는 한 번도 틀리지 않는 쪽이 더 불길합니다.");
+        increaseFear(1);
+      }
+    }
+
+    function inspectTV(){
+      tvCount++;
+      tvOn = !tvOn;
+      tv.classList.toggle("active", tvOn);
+      updateStatus();
+
+      if (tvCount === 1){
+        setMessage("TV 화면이 켜졌습니다. 방송은 없는데, 잡음이 방 안의 어둠을 더 또렷하게 비춥니다.");
+      } else if (tvCount === 2){
+        setMessage("꺼진 줄 알았던 화면에 방 안 풍경이 아주 늦게 따라옵니다.");
+        increaseFear(1);
+      } else if (tvCount === 3){
+        setMessage("화면 속 의자는 비어 있는데, 실제 의자는 아주 조금 흔들려 있습니다.");
+        increaseFear(2);
+      } else if (tvCount === 4){
+        setMessage("TV는 바깥을 보여주는 기계여야 하는데, 오늘 밤은 오히려 이 방 안쪽을 더 깊게 반사합니다.");
+        increaseFear(2);
+        pulseRoom();
+      } else {
+        setMessage("꺼진 TV는 거울보다 정직하지 않습니다. 보이는 것보다 늦게 진실을 돌려주니까요.");
+        increaseFear(1);
+      }
+    }
+
+    function openDresser(){
+      dresserCount++;
+      playDrawerAnimation();
+      dresserModal.classList.add("show");
+
+      if (dresserCount === 1){
+        setMessage("서랍을 열었습니다. 안에는 손톱깎이가 너무 가지런히 놓여 있습니다.");
+      } else if (dresserCount === 2){
+        setMessage("밤에 손톱을 깎지 말라는 말을 떠올리게 하는 배치입니다.");
+        increaseFear(1);
+      } else if (dresserCount === 3){
+        setMessage("어딘가에서 아주 짧은 ‘딱’ 소리가 났습니다. 금속성인데, 여기 말고는 날 곳이 없습니다.");
+        increaseFear(2);
+      } else {
+        setMessage("몸에서 떨어져 나온 작은 조각들은 밤에 더 오래 사람의 것처럼 남습니다.");
+        increaseFear(1);
+      }
+    }
+
+    function closeDresser(){
+      dresserModal.classList.remove("show");
+      setMessage("서랍을 닫았습니다. 닫힌 건 나무 상자뿐인데, 소리는 아직 남아 있는 것 같습니다.");
+    }
+
+    function inspectWindow(){
+      windowCount++;
+
+      if (windowCount === 1){
+        setMessage("창밖은 비어 있습니다. 그런데 유리 표면 가까이에서 누군가 휘파람을 불다 멈춘 것처럼 느껴집니다.");
+      } else if (windowCount === 2){
+        setMessage("밤의 휘파람은 뭔가를 부른다는 말을 떠올리게 합니다. 불렀다면, 지금 도착한 쪽은 바깥일까요 안쪽일까요.");
+        increaseFear(1);
+      } else if (windowCount === 3){
+        setMessage("유리에 비친 방 안이 실제보다 한 박자 늦습니다. 거울은 없앴는데 반사는 여전히 남아 있습니다.");
+        increaseFear(2);
+      } else {
+        setMessage("창은 밖을 보는 틈이지만, 밤이 깊어지면 대개 반대 방향의 시선을 더 또렷하게 돌려줍니다.");
+        increaseFear(1);
+      }
+    }
+
+    function toggleDoor(){
+      doorOpen = !doorOpen;
+      door.classList.toggle("open", doorOpen);
+      updateStatus();
+
+      if (doorOpen){
+        if (fearLevel < 5){
+          setMessage("문을 열었습니다. 복도는 어둡지만 아직은 평범합니다.");
+        } else if (fearLevel < 9){
+          setMessage("문을 열었는데 복도보다 이 방의 냄새가 먼저 밀려 나갑니다. 경계가 뒤섞인 것 같습니다.");
+          increaseFear(1);
+        } else {
+          setMessage("문을 열었는데, 바깥이 아니라 같은 방의 조용함이 다시 서 있습니다.");
+          increaseFear(2);
+        }
+      } else {
+        setMessage("문을 닫았습니다. 닫힌 건 출입뿐이지, 기척까지는 아닌 것 같습니다.");
+      }
+    }
+
+    function stepThreshold(){
+      thresholdCount++;
+
+      if (thresholdCount === 1){
+        setMessage("문지방을 밟았습니다. 별일은 없는데도 괜히 뒤를 확인하게 됩니다.");
+      } else if (thresholdCount === 2){
+        setMessage("또 밟았습니다. 방 안쪽이 한 톤 더 조용해졌습니다.");
+        increaseFear(1);
+      } else if (thresholdCount === 3){
+        doorShadowFigure.style.opacity = "0.45";
+        setMessage("문틈에 누가 서 있는 것 같았습니다. 문은 열리지 않았는데도요.");
+        increaseFear(2);
+      } else if (thresholdCount === 4){
+        setMessage("문지방은 경계라서 오래 건드리면 따라온다는 말이 떠오릅니다.");
+        increaseFear(2);
+        pulseRoom();
+      } else {
+        setMessage("안과 밖의 선을 너무 오래 의식하면, 선 너머보다 선 자체가 더 무서워집니다.");
+        increaseFear(1);
+      }
+    }
+
+    function openDrawer(){
+      infoDrawer.classList.add("open");
+    }
+
+    function closeDrawer(){
+      infoDrawer.classList.remove("open");
+    }
+
+    function triggerEnding(){
+      endingTriggered = true;
+      endingModal.classList.add("show");
+      setMessage("문을 열었는데… 다시 이 방입니다.");
+    }
+
+    function handleExit(){
+      if (fearLevel >= 12){
+        triggerEnding();
+      }
+    }
+
+    function resetScene(){
+      fearLevel = 0;
+      lightOn = true;
+      fanOn = false;
+      doorOpen = false;
+      tvOn = false;
+      endingTriggered = false;
+
+      fanCount = 0;
+      thresholdCount = 0;
+      underbedCount = 0;
+      shelfCount = 0;
+      chairCount = 0;
+      clockCount = 0;
+      dresserCount = 0;
+      windowCount = 0;
+      tvCount = 0;
+
+      room.classList.remove("dark", "flicker", "shake-once");
+      fan.classList.remove("on", "weird");
+      tv.classList.remove("active");
+      door.classList.remove("open");
+      clock.classList.remove("four");
+      bookshelf.classList.remove("weird");
+      chair.classList.remove("rock");
+      doll.classList.remove("glow");
+      doll.style.transform = "";
+      infoDrawer.classList.remove("open");
+      diaryModal.classList.remove("show");
+      dresserModal.classList.remove("show");
+      endingModal.classList.remove("show");
+      diaryIntroSeen = false;
+      diaryPageBase = 1;
+      diaryCanvasState.left.strokes = [];
+      diaryCanvasState.right.strokes = [];
+      leftPageTitle.value = "";
+      rightPageTitle.value = "";
+      leftPageText.value = "";
+      rightPageText.value = "";
+      diaryIntroSpread.classList.remove("hidden");
+      diaryDrawSpread.classList.add("hidden");
+      updateDiaryPageLabels();
+      renderAllDiaryCanvases();
+
+      eyeLeft.style.opacity = "0";
+      eyeRight.style.opacity = "0";
+      doorShadowFigure.style.opacity = "0";
+      ghostHand.classList.remove("show");
+
+      updateStatus();
+      fitRoomStage();
+      setMessage("방이 처음 상태로 돌아왔습니다. 하지만 한 번 본 것들은 늘 처음보다 조금 더 빨리 되돌아옵니다.");
+    }
+
+    function fitRoomStage(){
+      const roomWidth = room.clientWidth;
+      const roomHeight = room.clientHeight;
+
+      const baseWidth = 1280;
+      const baseHeight = 780;
+
+      const availableWidth = roomWidth - 30;
+      const availableHeight = roomHeight - 30;
+
+      const scaleX = availableWidth / baseWidth;
+      const scaleY = availableHeight / baseHeight;
+      const scale = Math.min(scaleX, scaleY);
+
+      room.style.setProperty("--room-scale", Math.max(scale, 0.42));
+    }
+
+    startBtn.addEventListener("click", () => {
+      intro.style.display = "none";
+      scene.classList.add("show");
+      updateStatus();
+      fitRoomStage();
+      setMessage("방에 들어왔습니다. 오늘 밤에는 평범한 가구들도 하나씩 이유를 갖게 됩니다.");
+    });
+
+    restartBtn.addEventListener("click", resetScene);
+
+    lightBtn.addEventListener("click", toggleLight);
+    fanBtn.addEventListener("click", toggleFan);
+    underbedBtn.addEventListener("click", inspectUnderbed);
+    bookshelfBtn.addEventListener("click", openDiary);
+    chairBtn.addEventListener("click", inspectChairDoll);
+    clockBtn.addEventListener("click", inspectClock);
+    tvBtn.addEventListener("click", inspectTV);
+    dresserBtn.addEventListener("click", openDresser);
+    windowBtn.addEventListener("click", inspectWindow);
+    doorBtn.addEventListener("click", toggleDoor);
+    resetBtn.addEventListener("click", resetScene);
+    exitBtn.addEventListener("click", handleExit);
+
+    fan.addEventListener("click", toggleFan);
+    underbed.addEventListener("click", inspectUnderbed);
+    bookshelf.addEventListener("click", openDiary);
+    chairZone.addEventListener("click", inspectChairDoll);
+    clock.addEventListener("click", inspectClock);
+    tv.addEventListener("click", inspectTV);
+    dresser.addEventListener("click", openDresser);
+    windowEl.addEventListener("click", inspectWindow);
+    door.addEventListener("click", toggleDoor);
+    threshold.addEventListener("click", stepThreshold);
+
+    drawerOpenBtn.addEventListener("click", openDrawer);
+    drawerCloseBtn.addEventListener("click", closeDrawer);
+
+    diaryCloseBtn.addEventListener("click", closeDiary);
+    diaryBackBtn.addEventListener("click", closeDiary);
+    drawModeBtn.addEventListener("click", () => setDiaryMode("draw"));
+    eraseModeBtn.addEventListener("click", () => setDiaryMode("erase"));
+    clearPageBtn.addEventListener("click", clearCurrentDiaryPage);
+    nextDiaryPageBtn.addEventListener("click", () => {
+      if (!diaryIntroSeen){
+        diaryIntroSeen = true;
+        diaryIntroSpread.classList.add("hidden");
+        diaryDrawSpread.classList.remove("hidden");
+        animateDiaryFlip(true);
+      } else {
+        animateDiaryFlip(true);
+      }
+    });
+    prevDiaryPageBtn.addEventListener("click", () => {
+      diaryIntroSeen = true;
+      diaryIntroSpread.classList.add("hidden");
+      diaryDrawSpread.classList.remove("hidden");
+      animateDiaryFlip(false);
+    });
+
+    dresserCloseBtn.addEventListener("click", closeDresser);
+    dresserBackBtn.addEventListener("click", closeDresser);
+
+    diaryModal.addEventListener("click", (e) => {
+      if (e.target === diaryModal) closeDiary();
+    });
+
+    dresserModal.addEventListener("click", (e) => {
+      if (e.target === dresserModal) closeDresser();
+    });
+
+    window.addEventListener("resize", () => {
+      fitRoomStage();
+      renderAllDiaryCanvases();
+    });
+    window.addEventListener("load", () => {
+      fitRoomStage();
+      renderAllDiaryCanvases();
+    });
+
+    setupDiaryCanvas("left");
+    setupDiaryCanvas("right");
+    setDiaryMode("draw");
+    setActiveDiaryPage("left");
+    updateDiaryPageLabels();
+    renderAllDiaryCanvases();
+
+    updateStatus();
+    fitRoomStage();
+  </script>
+</body>
+</html>
